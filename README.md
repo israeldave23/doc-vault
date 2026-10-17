@@ -4,7 +4,7 @@ Scan your IDs, licenses, and permits. Get reminded before they expire. 100% offl
 
 Built with Flutter by DGA Studios. Full product spec: [docs/SPEC.md](docs/SPEC.md).
 
-## Status: Week 1 of 6
+## Status: Week 2 of 6
 
 - [x] Project structure, theme (light/dark), design tokens
 - [x] Data models (`Document`, `Profile`, `AppSettings`) with hand-written Hive adapters
@@ -12,7 +12,7 @@ Built with Flutter by DGA Studios. Full product spec: [docs/SPEC.md](docs/SPEC.m
 - [x] Dashboard sorted by soonest expiry with red/amber/green status
 - [x] Add / Edit / Delete documents, profile filter, search
 - [x] Sample data seeded in debug builds
-- [ ] Week 2: camera, crop, encrypted photo storage
+- [x] Week 2: camera & gallery capture (`image_picker`), crop/rotate (`image_cropper`), AES-256 encrypted photo storage (`SecureImageStore`), front/back carousel, and pinch-to-zoom viewer
 - [ ] Week 3: OCR date detection, profiles management
 - [ ] Week 4: local notifications
 - [ ] Week 5: app lock, encrypted backup, settings
@@ -42,14 +42,17 @@ lib/
     constants/categories.dart# PH-first document category presets
     utils/expiry_status.dart # days-remaining math and status colors
   data/
-    local/hive_service.dart  # encrypted boxes, key management, seed data
-    repositories/            # thin wrappers around Hive boxes
+    local/
+      hive_service.dart        # encrypted boxes, key management, seed data
+      secure_image_store.dart  # AES-256-CBC photo encryption + random IV
+    repositories/              # thin wrappers around Hive boxes
   features/
     documents/
-      models/document.dart   # model + Hive adapter
-      providers/             # Riverpod notifiers (list, filters, lookup)
-      screens/               # dashboard, add/edit, detail
-      widgets/               # document card, status chip
+      models/document.dart     # model + Hive adapter
+      providers/               # Riverpod notifiers + decryptedImageProvider
+      services/                # camera/gallery pick + crop + encrypt flow
+      screens/                 # dashboard, add/edit, detail
+      widgets/                 # document card, status chip, encrypted photo viewer
     profiles/                # Profile model + providers
     settings/                # AppSettings model
 test/                        # unit tests (run with `flutter test`)

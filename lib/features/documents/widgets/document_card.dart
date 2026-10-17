@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/categories.dart';
 import '../../../core/utils/expiry_status.dart';
 import '../models/document.dart';
+import 'encrypted_image_view.dart';
 import 'status_chip.dart';
 
 class DocumentCard extends StatelessWidget {
@@ -18,6 +19,7 @@ class DocumentCard extends StatelessWidget {
     final category = DocumentCategory.byKey(document.category);
     final status = document.status;
     final dateText = DateFormat.yMMMd().format(document.expiryDate);
+    final hasPhotos = document.imagePaths.isNotEmpty;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -27,14 +29,21 @@ class DocumentCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Container(
+              SizedBox(
                 width: 48,
                 height: 48,
-                decoration: BoxDecoration(
-                  color: status.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(category.icon, color: status.color),
+                child: hasPhotos
+                    ? EncryptedImageView(
+                        storedPath: document.imagePaths.first,
+                        borderRadius: BorderRadius.circular(12),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(
+                          color: status.color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(category.icon, color: status.color),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -43,7 +52,8 @@ class DocumentCard extends StatelessWidget {
                   children: [
                     Text(
                       document.title,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -64,7 +74,8 @@ class DocumentCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             daysRemainingLabel(document.daysRemaining),
-                            style: theme.textTheme.labelMedium?.copyWith(color: status.color),
+                            style: theme.textTheme.labelMedium
+                                ?.copyWith(color: status.color),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),

@@ -1,13 +1,32 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_ce/hive.dart';
 
 import '../../../data/local/hive_service.dart';
+import '../../../data/local/secure_image_store.dart';
 import '../../../data/repositories/document_repository.dart';
 import '../../profiles/providers/profile_providers.dart';
 import '../models/document.dart';
+import '../services/photo_capture_service.dart';
 
 final documentRepositoryProvider = Provider<DocumentRepository>((ref) {
   return DocumentRepository(Hive.box<Document>(HiveService.documentsBox));
+});
+
+final secureImageStoreProvider = Provider<SecureImageStore>((ref) {
+  return SecureImageStore();
+});
+
+final photoCaptureServiceProvider = Provider<PhotoCaptureService>((ref) {
+  return PhotoCaptureService(imageStore: ref.watch(secureImageStoreProvider));
+});
+
+/// Decrypts an image on demand in memory; auto-disposes when off screen so
+/// decrypted bytes do not linger in RAM.
+final decryptedImageProvider =
+    FutureProvider.autoDispose.family<Uint8List, String>((ref, storedPath) {
+  return ref.watch(secureImageStoreProvider).load(storedPath);
 });
 
 /// All documents, soonest expiry first.
@@ -16,19 +35,34 @@ final documentsProvider =
 
 class DocumentsNotifier extends Notifier<List<Document>> {
   @override
-  List<Document> build() => _sorted(ref.watch(documentRepositoryProvider).getAll());
+  List<Document> build() =>
+      _sorted(ref.watch(documentRepositoryProvider).getAll());
 
   Future<void> upsert(Document document) async {
+    final existing = ref.read(documentRepositoryProvider).getById(document.id);
+    if (existing != null) {
+      final removedImages = existing.imagePaths
+          .where((p) => !document.imagePaths.contains(p))
+          .toList();
+      if (removedImages.isNotEmpty) {
+        await ref.read(secureImageStoreProvider).deleteAll(removedImages);
+      }
+    }
     await ref.read(documentRepositoryProvider).upsert(document);
     _reload();
   }
 
   Future<void> remove(String id) async {
+    final existing = ref.read(documentRepositoryProvider).getById(id);
+    if (existing != null && existing.imagePaths.isNotEmpty) {
+      await ref.read(secureImageStoreProvider).deleteAll(existing.imagePaths);
+    }
     await ref.read(documentRepositoryProvider).delete(id);
     _reload();
   }
 
-  void _reload() => state = _sorted(ref.read(documentRepositoryProvider).getAll());
+  void _reload() =>
+      state = _sorted(ref.read(documentRepositoryProvider).getAll());
 
   static List<Document> _sorted(List<Document> docs) {
     final copy = List<Document>.of(docs);
