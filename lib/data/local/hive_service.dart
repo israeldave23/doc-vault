@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
@@ -50,7 +49,8 @@ class HiveService {
 
   static Future<void> _ensureDefaults() async {
     final profiles = Hive.box<Profile>(profilesBox);
-    if (profiles.isEmpty) {
+    final isFirstLaunch = profiles.isEmpty;
+    if (isFirstLaunch) {
       await profiles.put(
         Profile.selfId,
         const Profile(id: Profile.selfId, name: 'Me', avatarEmoji: '🙂'),
@@ -62,9 +62,9 @@ class HiveService {
       await settings.put(AppSettings.storageKey, const AppSettings());
     }
 
-    // Week 1 only: sample data so the dashboard is not empty in debug builds.
+    // Seed sample documents once on first install so the dashboard is ready to explore.
     final documents = Hive.box<Document>(documentsBox);
-    if (kDebugMode && documents.isEmpty) {
+    if (isFirstLaunch && documents.isEmpty) {
       await _seedSampleDocuments(documents);
     }
   }
