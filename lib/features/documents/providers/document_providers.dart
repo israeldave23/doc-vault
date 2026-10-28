@@ -3,9 +3,12 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_ce/hive.dart';
 
+import '../../../core/constants/categories.dart';
+import '../../../core/utils/expiry_status.dart';
 import '../../../data/local/hive_service.dart';
 import '../../../data/local/secure_image_store.dart';
 import '../../../data/repositories/document_repository.dart';
+import '../../reminders/services/reminder_service.dart';
 import '../../profiles/providers/profile_providers.dart';
 import '../models/document.dart';
 import '../services/photo_capture_service.dart';
@@ -50,6 +53,22 @@ class DocumentsNotifier extends Notifier<List<Document>> {
     }
     await ref.read(documentRepositoryProvider).upsert(document);
     _reload();
+    await _resyncReminders();
+  }
+
+  /// Moves every document tagged [fromProfileId] to [toProfileId], used when a
+  /// profile is deleted so its documents are never orphaned.
+  Future<void> reassignProfile(String fromProfileId, String toProfileId) async {
+    final repository = ref.read(documentRepositoryProvider);
+    final affected = repository
+        .getAll()
+        .where((d) => d.profileId == fromProfileId)
+        .toList(growable: false);
+    for (final document in affected) {
+      await repository.upsert(document.copyWith(profileId: toProfileId));
+    }
+    _reload();
+    await _resyncReminders();
   }
 
   Future<void> remove(String id) async {
@@ -59,10 +78,20 @@ class DocumentsNotifier extends Notifier<List<Document>> {
     }
     await ref.read(documentRepositoryProvider).delete(id);
     _reload();
+    await _resyncReminders();
   }
+
+  /// Rebuilds the pending notifications after any document change so edited
+  /// and deleted documents never leave stale reminders behind.
+  Future<void> _resyncReminders() => ref
+      .read(reminderServiceProvider)
+      .syncAll(ref.read(documentRepositoryProvider).getAll());
 
   void _reload() =>
       state = _sorted(ref.read(documentRepositoryProvider).getAll());
+
+  /// Re-reads from storage — used after a backup restore replaces the box.
+  void refresh() => _reload();
 
   static List<Document> _sorted(List<Document> docs) {
     final copy = List<Document>.of(docs);
@@ -71,21 +100,42 @@ class DocumentsNotifier extends Notifier<List<Document>> {
   }
 }
 
-/// Documents filtered by the selected profile and the search query.
+/// Documents filtered by the selected profile, status, and search query.
 final visibleDocumentsProvider = Provider<List<Document>>((ref) {
   final all = ref.watch(documentsProvider);
   final profileId = ref.watch(selectedProfileIdProvider);
+  final status = ref.watch(statusFilterProvider);
   final query = ref.watch(searchQueryProvider).trim().toLowerCase();
 
   return all.where((d) {
     final matchesProfile = profileId == null || d.profileId == profileId;
-    final matchesQuery = query.isEmpty ||
-        d.title.toLowerCase().contains(query) ||
-        d.category.toLowerCase().contains(query) ||
-        (d.notes?.toLowerCase().contains(query) ?? false);
-    return matchesProfile && matchesQuery;
+    final matchesStatus = status == null || d.status == status;
+    final matchesQuery = query.isEmpty || _matchesQuery(d, query);
+    return matchesProfile && matchesStatus && matchesQuery;
   }).toList(growable: false);
 });
+
+/// Matches title, category key *and* its human label, ID number, and notes.
+bool _matchesQuery(Document d, String query) {
+  final label = DocumentCategory.byKey(d.category).label.toLowerCase();
+  return d.title.toLowerCase().contains(query) ||
+      label.contains(query) ||
+      d.category.toLowerCase().contains(query) ||
+      (d.idNumber?.toLowerCase().contains(query) ?? false) ||
+      (d.notes?.toLowerCase().contains(query) ?? false);
+}
+
+/// Selected status chip on the dashboard; `null` = show everything.
+final statusFilterProvider =
+    NotifierProvider<StatusFilterNotifier, ExpiryStatus?>(
+        StatusFilterNotifier.new);
+
+class StatusFilterNotifier extends Notifier<ExpiryStatus?> {
+  @override
+  ExpiryStatus? build() => null;
+
+  void select(ExpiryStatus? status) => state = status;
+}
 
 final searchQueryProvider =
     NotifierProvider<SearchQueryNotifier, String>(SearchQueryNotifier.new);

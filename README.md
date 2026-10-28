@@ -13,10 +13,11 @@ Built with Flutter by DGA Studios. Full product spec: [docs/SPEC.md](docs/SPEC.m
 - [x] Add / Edit / Delete documents, profile filter, search
 - [x] Sample data seeded in debug builds
 - [x] Week 2: camera & gallery capture (`image_picker`), crop/rotate (`image_cropper`), AES-256 encrypted photo storage (`SecureImageStore`), front/back carousel, and pinch-to-zoom viewer
-- [ ] Week 3: OCR date detection, profiles management
-- [ ] Week 4: local notifications
-- [ ] Week 5: app lock, encrypted backup, settings
-- [ ] Week 6: AdMob, Pro unlock, onboarding, Play Store release
+- [x] Step 1 cleanup: sample data now debug-only (`kDebugMode`), Profiles management screen (add / rename / delete with documents reassigned to "Me"), status filter chips, search across title / category label / ID number / notes, per-document reminder-days editor
+- [x] Week 3: OCR date detection (`google_mlkit_text_recognition`) — offline date parsing for ISO, `DD MMM YYYY`, `DD/MM/YYYY` and passport MRZ, offered as a "Detected from photo" suggestion
+- [x] Week 4: local reminders (`flutter_local_notifications` + `timezone`) — 09:00 local scheduling for every configured lead, daily repeats across the final week, full resync on app start / document edit / delete, reboot rescheduling, Android 13+ permission flow with an explainer dialog
+- [x] Week 5: app lock (PIN + `local_auth` biometrics, locks on launch and resume), encrypted backup/restore (single PBKDF2 + AES-256 `.dvault` file with photos included), Settings screen (appearance, default reminders, security, backup, privacy), wired `AppSettings` theme mode
+- [x] Week 6: AdMob banner (test IDs until the real AdMob account exists), Pro unlock via `in_app_purchase` with the 10-document / 2-profile caps, paywall, 3-slide onboarding, release signing via `key.properties`, Play Store listing + privacy policy drafts (`docs/`)
 
 ## Getting started
 
@@ -50,10 +51,16 @@ lib/
     documents/
       models/document.dart     # model + Hive adapter
       providers/               # Riverpod notifiers + decryptedImageProvider
-      services/                # camera/gallery pick + crop + encrypt flow
+      services/                # camera/gallery pick + crop + encrypt flow, OCR date detection
       screens/                 # dashboard, add/edit, detail
       widgets/                 # document card, status chip, encrypted photo viewer
-    profiles/                # Profile model + providers
+    profiles/                # Profile model + providers + management screen
+    reminders/                # reminder scheduling maths + local notifications service
+    lock/                     # LockGate + PIN keypad
+    pro/                       # free-tier limits, IAP service, paywall
+    ads/                       # AdMob banner (free tier only)
+    onboarding/                # first-run slides
+    core/security/            # PBKDF2 passphrase/PIN key derivation
     settings/                # AppSettings model
 test/                        # unit tests (run with `flutter test`)
 docs/SPEC.md                 # product spec and 6-week plan
@@ -63,7 +70,7 @@ docs/SPEC.md                 # product spec and 6-week plan
 
 - **State:** Riverpod `Notifier` classes. Screens only talk to providers.
 - **Storage:** Hive CE boxes encrypted with `HiveAesCipher`. Adapters are hand-written (no build_runner) so the project stays simple to follow. Never reuse or renumber adapter field indexes once shipped.
-- **Privacy:** no network calls, no accounts. The only data that ever leaves the device is a user-initiated encrypted backup (Week 5).
+- **Privacy:** no accounts, no server. The only document data that ever leaves the device is a user-initiated encrypted backup (Week 5). The free tier's AdMob banner is the one component that touches the network, and Pro removes it.
 
 ## Running checks
 

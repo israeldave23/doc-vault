@@ -52,6 +52,41 @@ class Document {
     return '•••• ${value.substring(value.length - 4)}';
   }
 
+  /// Backup / restore interchange format; dates as ISO-8601 strings.
+  Map<String, dynamic> toMap() => <String, dynamic>{
+        'id': id,
+        'title': title,
+        'category': category,
+        'idNumber': idNumber,
+        'issueDate': issueDate?.toIso8601String(),
+        'expiryDate': expiryDate.toIso8601String(),
+        'profileId': profileId,
+        'imagePaths': imagePaths,
+        'notes': notes,
+        'reminderDaysBefore': reminderDaysBefore,
+        'remindersEnabled': remindersEnabled,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+      };
+
+  factory Document.fromMap(Map<String, dynamic> map) => Document(
+        id: map['id'] as String,
+        title: map['title'] as String,
+        category: map['category'] as String,
+        idNumber: map['idNumber'] as String?,
+        issueDate: map['issueDate'] == null
+            ? null
+            : DateTime.parse(map['issueDate'] as String),
+        expiryDate: DateTime.parse(map['expiryDate'] as String),
+        profileId: map['profileId'] as String,
+        imagePaths: (map['imagePaths'] as List?)?.cast<String>(),
+        notes: map['notes'] as String?,
+        reminderDaysBefore: (map['reminderDaysBefore'] as List?)?.cast<int>(),
+        remindersEnabled: map['remindersEnabled'] as bool? ?? true,
+        createdAt: DateTime.parse(map['createdAt'] as String),
+        updatedAt: DateTime.parse(map['updatedAt'] as String),
+      );
+
   Document copyWith({
     String? title,
     String? category,

@@ -128,7 +128,7 @@ class DocumentDetailScreen extends ConsumerWidget {
             icon: Icons.notifications_outlined,
             label: 'Reminders',
             value: document.remindersEnabled
-                ? '${document.reminderDaysBefore.join(', ')} days before'
+                ? '${document.reminderDaysBefore.map((d) => d == 1 ? '1 day' : '$d days').join(', ')} before expiry'
                 : 'Off',
           ),
           if (document.notes != null && document.notes!.isNotEmpty)

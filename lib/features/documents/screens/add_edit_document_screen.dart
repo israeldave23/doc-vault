@@ -8,6 +8,10 @@ import '../../../core/constants/categories.dart';
 import '../../../data/local/secure_image_store.dart';
 import '../../profiles/models/profile.dart';
 import '../../profiles/providers/profile_providers.dart';
+import '../../settings/providers/settings_provider.dart';
+import '../../reminders/services/reminder_service.dart';
+import '../../pro/models/free_tier.dart';
+import '../../pro/widgets/free_tier_gate.dart';
 import '../models/document.dart';
 import '../providers/document_providers.dart';
 import '../widgets/encrypted_image_view.dart';
@@ -37,7 +41,11 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   late String _profileId;
   DateTime? _issueDate;
   DateTime? _expiryDate;
+
+  /// Expiry date read from the most recent photo by on-device OCR.
+  DateTime? _detectedExpiry;
   late bool _remindersEnabled;
+  late List<int> _reminderDays;
   late List<String> _imagePaths;
 
   /// Tracks photos encrypted during this form session so we can clean them up
@@ -61,6 +69,10 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     _issueDate = doc?.issueDate;
     _expiryDate = doc?.expiryDate;
     _remindersEnabled = doc?.remindersEnabled ?? true;
+    _reminderDays = List<int>.of(
+      doc?.reminderDaysBefore ??
+          ref.read(settingsProvider).defaultReminderDays,
+    );
     _imagePaths = List<String>.of(doc?.imagePaths ?? const <String>[]);
   }
 
@@ -74,6 +86,30 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     _idNumberController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  /// Reminder lead-time choices offered to the user, longest first.
+  static const _reminderOptions = <int>[90, 60, 30, 14, 7, 3, 1];
+
+  void _toggleReminderDay(int days, bool selected) {
+    if (selected) {
+      if (!_reminderDays.contains(days)) _reminderDays.add(days);
+    } else {
+      // Keep at least one reminder so a document can never go silent by accident.
+      if (_reminderDays.length > 1) _reminderDays.remove(days);
+    }
+  }
+
+  List<int> _sortedReminderDays() => List<int>.of(_reminderDays)
+    ..sort((a, b) => b.compareTo(a));
+
+  String _reminderSummary() {
+    if (!_remindersEnabled) return 'Reminders are off for this document';
+    final days = _sortedReminderDays();
+    final labels = days.map((d) => d == 1 ? '1 day' : '$d days').toList();
+    if (labels.length == 1) return '${labels.first} before expiry';
+    final last = labels.removeLast();
+    return '${labels.join(', ')} and $last before expiry';
   }
 
   Future<void> _showPhotoSourceSheet() async {
@@ -111,16 +147,22 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   Future<void> _captureFromSource(ImageSource source) async {
     setState(() => _isCapturingPhoto = true);
     try {
-      final storedPath = await ref
+      final result = await ref
           .read(photoCaptureServiceProvider)
           .pickCropAndSave(
             source: source,
             toolbarColor: Theme.of(context).colorScheme.primary,
           );
-      if (storedPath == null || !mounted) return;
+      if (result == null || !mounted) return;
       setState(() {
-        _imagePaths.add(storedPath);
-        _sessionAddedPaths.add(storedPath);
+        _imagePaths.add(result.storedPath);
+        _sessionAddedPaths.add(result.storedPath);
+        if (result.suggestedExpiry != null) {
+          _detectedExpiry = result.suggestedExpiry;
+          // Prefill only when the user has not chosen a date yet; otherwise the
+          // suggestion is offered below the field for them to accept.
+          _expiryDate ??= result.suggestedExpiry;
+        }
       });
     } catch (e) {
       if (!mounted) return;
@@ -173,6 +215,17 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
       return;
     }
 
+    if (!_isEditing) {
+      final isPro = ref.read(settingsProvider).isPro;
+      final count = ref.read(documentsProvider).length;
+      final withinLimit = await ensureWithinFreeTier(
+        context,
+        allowed: isPro || count < FreeTier.maxDocuments,
+        message: FreeTier.documentLimitMessage(count),
+      );
+      if (!withinLimit || !mounted) return;
+    }
+
     final idNumber = _idNumberController.text.trim();
     final notes = _notesController.text.trim();
 
@@ -187,6 +240,7 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
             profileId: _profileId,
             imagePaths: List<String>.unmodifiable(_imagePaths),
             notes: notes.isEmpty ? null : notes,
+            reminderDaysBefore: _sortedReminderDays(),
             remindersEnabled: _remindersEnabled,
           )
         : Document(
@@ -199,11 +253,32 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
             profileId: _profileId,
             imagePaths: List<String>.unmodifiable(_imagePaths),
             notes: notes.isEmpty ? null : notes,
+            reminderDaysBefore: _sortedReminderDays(),
             remindersEnabled: _remindersEnabled,
           );
 
     _didSave = true;
     await ref.read(documentsProvider.notifier).upsert(document);
+    if (!mounted) return;
+
+    if (_remindersEnabled) {
+      // Explain and request notification permission only now that the user
+      // actually saved something with reminders on.
+      final granted = await ref
+          .read(reminderServiceProvider)
+          .ensurePermission(context);
+      if (!mounted) return;
+      if (!granted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Saved, but notifications are off — reminders will not fire.',
+            ),
+          ),
+        );
+      }
+    }
+
     if (!mounted) return;
     Navigator.of(context).pop();
   }
@@ -279,6 +354,35 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
               value: _expiryDate == null ? null : dateFormat.format(_expiryDate!),
               onTap: () => _pickDate(isExpiry: true),
             ),
+            if (_detectedExpiry != null) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 6, 0, 0),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      size: 14,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _expiryDate == _detectedExpiry
+                            ? 'Detected from photo — ${dateFormat.format(_detectedExpiry!)}'
+                            : 'Detected from photo: ${dateFormat.format(_detectedExpiry!)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    if (_expiryDate != _detectedExpiry)
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _expiryDate = _detectedExpiry),
+                        child: const Text('Use date'),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             _DateTile(
               label: 'Issue date (optional)',
@@ -323,10 +427,31 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Remind me before it expires'),
-              subtitle: const Text('90, 30, 7 and 1 day before'),
+              subtitle: Text(_reminderSummary()),
               value: _remindersEnabled,
               onChanged: (value) => setState(() => _remindersEnabled = value),
             ),
+            if (_remindersEnabled) ...[
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final days in _reminderOptions)
+                    FilterChip(
+                      label: Text(days == 1 ? '1 day' : '$days days'),
+                      selected: _reminderDays.contains(days),
+                      onSelected: (selected) =>
+                          setState(() => _toggleReminderDay(days, selected)),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Choose at least one reminder. Documents are alerted at 9:00 AM on each selected day before expiry.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _save,

@@ -34,6 +34,15 @@ class ProfilesNotifier extends Notifier<List<Profile>> {
     _reload();
   }
 
+  Future<void> setAvatar(String id, String? avatarEmoji) async {
+    final existing = ref.read(profileRepositoryProvider).getById(id);
+    if (existing == null) return;
+    await ref
+        .read(profileRepositoryProvider)
+        .upsert(existing.copyWith(avatarEmoji: avatarEmoji));
+    _reload();
+  }
+
   Future<void> remove(String id) async {
     if (id == Profile.selfId) return; // the default profile cannot be removed
     await ref.read(profileRepositoryProvider).delete(id);
@@ -41,6 +50,9 @@ class ProfilesNotifier extends Notifier<List<Profile>> {
   }
 
   void _reload() => state = ref.read(profileRepositoryProvider).getAll();
+
+  /// Re-reads from storage — used after a backup restore replaces the box.
+  void refresh() => _reload();
 }
 
 /// Currently selected profile filter on the dashboard. `null` = everyone.

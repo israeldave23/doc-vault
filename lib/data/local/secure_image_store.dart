@@ -156,4 +156,48 @@ class SecureImageStore {
     final dir = await _directoryResolver();
     return File(p.join(dir.path, storedPath));
   }
+
+  /// Names of every encrypted file currently in the vault (backup export).
+  Future<List<String>> listStored() async {
+    final dir = await _directoryResolver();
+    if (!await dir.exists()) return const <String>[];
+    final entries = await dir.list().toList();
+    final names = <String>[];
+    for (final entry in entries) {
+      if (entry is File && p.extension(entry.path) == '.enc') {
+        names.add(p.basename(entry.path));
+      }
+    }
+    return names;
+  }
+
+  /// Reads the still-encrypted bytes of [storedPath] without decrypting them,
+  /// so a backup never materializes plaintext images on disk.
+  Future<Uint8List> readEncrypted(String storedPath) async {
+    final file = await _resolveFile(storedPath);
+    if (!await file.exists()) {
+      throw FileSystemException('Encrypted image is missing', storedPath);
+    }
+    return file.readAsBytes();
+  }
+
+  /// Writes already-encrypted bytes into the vault (backup restore). The file
+  /// name is flattened so a crafted backup cannot escape the vault folder.
+  Future<void> writeEncrypted(String storedPath, Uint8List payload) async {
+    final dir = await _directoryResolver();
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    final safeName = p.basename(storedPath);
+    await File(p.join(dir.path, safeName)).writeAsBytes(payload, flush: true);
+  }
+
+  /// Removes every encrypted image (used before restoring a backup).
+  Future<void> clearAll() async {
+    final dir = await _directoryResolver();
+    if (!await dir.exists()) return;
+    for (final name in await listStored()) {
+      await delete(name);
+    }
+  }
 }

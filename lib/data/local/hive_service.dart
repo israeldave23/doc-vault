@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
@@ -62,7 +63,9 @@ class HiveService {
       await settings.put(AppSettings.storageKey, const AppSettings());
     }
 
-    // Seed sample documents once on first install so the dashboard is ready to explore.
+    // Seed sample documents once on first install so debug builds open with a
+    // populated dashboard. Release builds never receive sample data.
+    if (!kDebugMode) return;
     final documents = Hive.box<Document>(documentsBox);
     if (isFirstLaunch && documents.isEmpty) {
       await _seedSampleDocuments(documents);

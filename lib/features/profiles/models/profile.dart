@@ -11,6 +11,19 @@ class Profile {
   final String name;
   final String? avatarEmoji;
 
+  /// Backup / restore interchange format.
+  Map<String, dynamic> toMap() => <String, dynamic>{
+        'id': id,
+        'name': name,
+        'avatarEmoji': avatarEmoji,
+      };
+
+  factory Profile.fromMap(Map<String, dynamic> map) => Profile(
+        id: map['id'] as String,
+        name: map['name'] as String,
+        avatarEmoji: map['avatarEmoji'] as String?,
+      );
+
   Profile copyWith({String? name, String? avatarEmoji}) {
     return Profile(
       id: id,
