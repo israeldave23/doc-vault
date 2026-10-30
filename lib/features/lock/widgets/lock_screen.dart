@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../settings/providers/settings_provider.dart';
 import '../../settings/services/auth_service.dart';
 import '../providers/auth_providers.dart';
 
@@ -28,8 +29,12 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   }
 
   Future<void> _checkBiometrics() async {
-    final available = await ref.read(authServiceProvider).canUseBiometrics();
-    if (mounted) setState(() => _biometricAvailable = available);
+    final enabled = ref.read(settingsProvider).biometricsEnabled;
+    final available =
+        enabled && await ref.read(authServiceProvider).canUseBiometrics();
+    if (!mounted) return;
+    setState(() => _biometricAvailable =
+        available && ref.read(settingsProvider).biometricsEnabled);
   }
 
   void _tap(String digit) {
@@ -38,9 +43,6 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       _error = null;
       if (_entered.length < AuthService.maxPinLength) _entered += digit;
     });
-    // Verify as soon as the minimum length is reached; longer PINs keep
-    // going until maxPinLength (the stored length is what decides it).
-    if (_entered.length == AuthService.minPinLength) _verify();
   }
 
   void _backspace() {
@@ -110,6 +112,9 @@ class _LockScreenState extends ConsumerState<LockScreen> {
             _Keypad(
               onDigit: _tap,
               onBackspace: _backspace,
+              onSubmit: _entered.length >= AuthService.minPinLength && !_busy
+                  ? _verify
+                  : null,
               trailing: _biometricAvailable
                   ? IconButton(
                       iconSize: 34,
@@ -138,7 +143,7 @@ class _PinDots extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        for (var i = 0; i < AuthService.minPinLength; i++)
+        for (var i = 0; i < AuthService.maxPinLength; i++)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Icon(
@@ -156,11 +161,13 @@ class _Keypad extends StatelessWidget {
   const _Keypad({
     required this.onDigit,
     required this.onBackspace,
+    required this.onSubmit,
     required this.trailing,
   });
 
   final ValueChanged<String> onDigit;
   final VoidCallback onBackspace;
+  final VoidCallback? onSubmit;
   final Widget trailing;
 
   @override
@@ -191,18 +198,20 @@ class _Keypad extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(width: 72, height: 64),
+            SizedBox(width: 72, height: 64, child: trailing),
             key('0'),
             SizedBox(
               width: 72,
               height: 64,
               child: IconButton(
+                tooltip: 'Delete digit',
                 onPressed: onBackspace,
                 icon: const Icon(Icons.backspace_outlined),
               ),
             ),
           ],
         ),
+        FilledButton(onPressed: onSubmit, child: const Text('Unlock')),
       ],
     );
   }

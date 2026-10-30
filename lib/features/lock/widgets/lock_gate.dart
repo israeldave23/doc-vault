@@ -18,7 +18,7 @@ class LockGate extends ConsumerStatefulWidget {
 
 class _LockGateState extends ConsumerState<LockGate>
     with WidgetsBindingObserver {
-  bool _locked = false;
+  bool _locked = true;
   bool _authenticating = false;
 
   @override
@@ -52,6 +52,7 @@ class _LockGateState extends ConsumerState<LockGate>
     // enabled the lock on a device with no PIN yet) — never brick the vault.
     final auth = ref.read(authServiceProvider);
     final canUnlock = await auth.isPinSet() || settings.biometricsEnabled;
+    if (!mounted) return;
     if (!canUnlock) {
       if (_locked && mounted) setState(() => _locked = false);
       return;

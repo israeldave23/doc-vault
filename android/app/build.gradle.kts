@@ -32,11 +32,8 @@ android {
         versionName = flutter.versionName
     }
 
-    // Release signing: when android/key.properties exists (gitignored, see
-    // docs/RELEASE.md) the release build is signed with the upload keystore;
-    // otherwise it falls back to the debug key so local and CI builds keep
-    // working. Play Store uploads always use the key registered in Play
-    // App Signing anyway.
+    // Release builds remain unsigned unless the upload keystore is configured.
+    // See docs/RELEASE.md; never sign release builds with the debug key.
     val keystoreProperties = Properties()
     val keystorePropertiesFile = rootProject.file("key.properties")
     if (keystorePropertiesFile.exists()) {
@@ -56,10 +53,8 @@ android {
 
     buildTypes {
         release {
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

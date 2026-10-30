@@ -27,8 +27,7 @@ storePassword=YOUR_STORE_PASSWORD
 ```
 
 With that file present, `flutter build appbundle --release` signs the app
-bundle with it; without it the build falls back to the debug key so CI keeps
-producing test APKs.
+bundle with it; without it the release build is unsigned and cannot be uploaded.
 
 **Play App Signing:** Play Console creates and holds the actual app signing
 key; you upload the *upload* key above. If you ever lose it, request an upload
@@ -70,10 +69,8 @@ flutter build appbundle --release     # bundle for Play
 flutter build apk --release           # sideload/test APK
 ```
 
-CI (`.github/workflows/flutter_ci.yml`) still builds a **debug-signed** test
-APK on every push to `main` — intentional, so the pipeline never depends on
-secrets. Add the keystore as CI secrets yourself if you want CI to produce the
-store-ready bundle.
+CI (`.github/workflows/flutter_ci.yml`) builds a debug APK as a workflow
+artifact. It does not publish release builds or require signing secrets.
 
 ## 5. Closed testing
 
