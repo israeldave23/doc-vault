@@ -250,6 +250,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
 class VaultProfileSelector extends ConsumerWidget {
   const VaultProfileSelector({
+    super.key,
     required this.profiles,
     required this.selectedProfile,
   });
@@ -399,6 +400,7 @@ class _AttentionCard extends StatelessWidget {
 
 class VaultStatusFilters extends ConsumerWidget {
   const VaultStatusFilters({
+    super.key,
     required this.selectedStatus,
     required this.documents,
     required this.selectedProfile,
