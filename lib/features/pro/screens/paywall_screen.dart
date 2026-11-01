@@ -41,85 +41,118 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Document Vault Pro')),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
         children: [
-          Icon(Icons.workspace_premium, size: 64, color: theme.colorScheme.primary),
-          const SizedBox(height: 16),
-          Text(
-            'Unlock Pro forever',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'One payment, no subscription. Your data never leaves the device '
-            'either way.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-          ),
-          if (widget.reason != null) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.secondaryContainer,
-                borderRadius: BorderRadius.circular(12),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ExcludeSemantics(
+                    child: Icon(
+                      Icons.workspace_premium,
+                      size: 64,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Unlock Pro forever',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'One payment, no subscription. Your data never leaves the '
+                    'device either way.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  if (widget.reason != null) ...[
+                    const SizedBox(height: 16),
+                    Semantics(
+                      liveRegion: true,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          widget.reason!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: theme.colorScheme.onSecondaryContainer,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  for (final feature in const [
+                    'Unlimited documents',
+                    'Unlimited people and profiles',
+                    'No banner ads',
+                    'Support an independent offline-first app',
+                  ])
+                    ListTile(
+                      leading: Icon(
+                        Icons.check_circle,
+                        color: theme.colorScheme.primary,
+                      ),
+                      title: Text(feature),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: pro.storeAvailable ? () => pro.buyPro() : null,
+                    icon: const Icon(Icons.lock_open),
+                    label: Text(
+                      pro.storeAvailable
+                          ? 'Unlock Pro — ${pro.priceLabel ?? ''}'
+                          : 'Purchases unavailable',
+                    ),
+                  ),
+                  if (!pro.storeAvailable) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'The Play Store is not available on this device, so the '
+                      'price cannot be shown right now.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                  TextButton(
+                    onPressed: () => pro.restorePurchases(),
+                    child: const Text('Restore purchase'),
+                  ),
+                  if (message != null) ...[
+                    const SizedBox(height: 8),
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  Text(
+                    'Free tier: up to ${FreeTier.maxDocuments} documents and '
+                    '${FreeTier.maxProfiles} people. Reminders, encryption and '
+                    'app lock are always free.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
-              child: Text(widget.reason!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: theme.colorScheme.onSecondaryContainer)),
             ),
-          ],
-          const SizedBox(height: 24),
-          for (final feature in const [
-            'Unlimited documents',
-            'Unlimited people and profiles',
-            'No banner ads',
-            'Support an independent offline-first app',
-          ])
-            ListTile(
-              leading: Icon(Icons.check_circle,
-                  color: theme.colorScheme.primary),
-              title: Text(feature),
-              contentPadding: EdgeInsets.zero,
-            ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: pro.storeAvailable ? () => pro.buyPro() : null,
-            icon: const Icon(Icons.lock_open),
-            label: Text(
-              pro.storeAvailable
-                  ? 'Unlock Pro — ${pro.priceLabel ?? ''}'
-                  : 'Purchases unavailable',
-            ),
-          ),
-          if (!pro.storeAvailable) ...[
-            const SizedBox(height: 8),
-            Text(
-              'The Play Store is not available on this device, so the price '
-              'cannot be shown right now.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
-          TextButton(
-            onPressed: () => pro.restorePurchases(),
-            child: const Text('Restore purchase'),
-          ),
-          if (message != null) ...[
-            const SizedBox(height: 8),
-            Text(message,
-                textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
-          ],
-          const SizedBox(height: 24),
-          Text(
-            'Free tier: up to ${FreeTier.maxDocuments} documents and '
-            '${FreeTier.maxProfiles} people. Reminders, encryption and app '
-            'lock are always free.',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
         ],
       ),

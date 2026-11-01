@@ -76,44 +76,68 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 onPageChanged: (index) => setState(() => _page = index),
                 itemBuilder: (context, index) {
                   final (icon, title, body) = _slides[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(icon, size: 96, color: theme.colorScheme.primary),
-                        const SizedBox(height: 32),
-                        Text(title,
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 24,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: MediaQuery.sizeOf(context).height * .55,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ExcludeSemantics(
+                            child: Icon(
+                              icon,
+                              size: 96,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Text(
+                            title,
                             textAlign: TextAlign.center,
-                            style: theme.textTheme.headlineSmall),
-                        const SizedBox(height: 16),
-                        Text(body,
+                            style: theme.textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            body,
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodyLarge?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant)),
-                      ],
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var i = 0; i < _slides.length; i++)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: _page == i ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _page == i
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-              ],
+            Semantics(
+              label: 'Page ${_page + 1} of ${_slides.length}',
+              child: ExcludeSemantics(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (var i = 0; i < _slides.length; i++)
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _page == i ? 24 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _page == i
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outlineVariant,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(24),
@@ -134,12 +158,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             ),
             if (_page == _slides.length - 1)
-              TextButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                      builder: (_) => const SettingsScreen()),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                        builder: (_) => const SettingsScreen()),
+                  ),
+                  child: const Text('Set up app lock now'),
                 ),
-                child: const Text('Set up app lock now'),
               ),
           ],
         ),

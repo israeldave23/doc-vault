@@ -82,57 +82,98 @@ class DocumentDetailScreen extends ConsumerWidget {
               imagePaths: document.imagePaths,
             ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              StatusChip(status: status),
-              const SizedBox(width: 12),
-              Text(
-                daysRemainingLabel(document.daysRemaining),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: status.color,
-                  fontWeight: FontWeight.w700,
+          Semantics(
+            label:
+                '${status.label}. ${daysRemainingLabel(document.daysRemaining)}',
+            child: ExcludeSemantics(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: status.color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
                 ),
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    StatusChip(status: status),
+                    Text(
+                      daysRemainingLabel(document.daysRemaining),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: status.color,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          _DetailSection(
+            title: 'Document details',
+            children: [
+              _InfoTile(
+                icon: Icons.category_outlined,
+                label: 'Category',
+                value: category.label,
+              ),
+              _InfoTile(
+                icon: Icons.event_busy,
+                label: 'Expires',
+                value: dateFormat.format(document.expiryDate),
+              ),
+              if (document.issueDate != null)
+                _InfoTile(
+                  icon: Icons.event_available,
+                  label: 'Issued',
+                  value: dateFormat.format(document.issueDate!),
+                ),
+              if (document.idNumber != null)
+                _InfoTile(
+                  icon: Icons.numbers,
+                  label: 'ID number',
+                  value: document.idNumber!,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _DetailSection(
+            title: 'Ownership & reminders',
+            children: [
+              if (profile != null)
+                _InfoTile(
+                  icon: Icons.person_outline,
+                  label: 'Belongs to',
+                  value:
+                      '${profile.avatarEmoji == null ? '' : '${profile.avatarEmoji} '}${profile.name}',
+                ),
+              _InfoTile(
+                icon: document.remindersEnabled
+                    ? Icons.notifications_active_outlined
+                    : Icons.notifications_off_outlined,
+                label: 'Reminders',
+                value: document.remindersEnabled
+                    ? '${document.reminderDaysBefore.map((d) => d == 1 ? '1 day' : '$d days').join(', ')} before expiry'
+                    : 'Off',
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          _InfoTile(
-            icon: Icons.category_outlined,
-            label: 'Category',
-            value: category.label,
-          ),
-          _InfoTile(
-            icon: Icons.event_busy,
-            label: 'Expires',
-            value: dateFormat.format(document.expiryDate),
-          ),
-          if (document.issueDate != null)
-            _InfoTile(
-              icon: Icons.event_available,
-              label: 'Issued',
-              value: dateFormat.format(document.issueDate!),
+          if (document.notes != null && document.notes!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _DetailSection(
+              title: 'Notes',
+              children: [
+                _InfoTile(
+                  icon: Icons.notes,
+                  label: 'Notes',
+                  value: document.notes!,
+                ),
+              ],
             ),
-          if (profile != null)
-            _InfoTile(
-              icon: Icons.person_outline,
-              label: 'Belongs to',
-              value: profile.name,
-            ),
-          if (document.idNumber != null)
-            _InfoTile(
-              icon: Icons.numbers,
-              label: 'ID number',
-              value: document.idNumber!,
-            ),
-          _InfoTile(
-            icon: Icons.notifications_outlined,
-            label: 'Reminders',
-            value: document.remindersEnabled
-                ? '${document.reminderDaysBefore.map((d) => d == 1 ? '1 day' : '$d days').join(', ')} before expiry'
-                : 'Off',
-          ),
-          if (document.notes != null && document.notes!.isNotEmpty)
-            _InfoTile(icon: Icons.notes, label: 'Notes', value: document.notes!),
+          ],
         ],
       ),
     );
@@ -199,59 +240,65 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
               final slot = index < _slotLabels.length
                   ? _slotLabels[index]
                   : 'Page ${index + 1}';
-              return GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => EncryptedPhotoViewerScreen(
-                      title: widget.title,
-                      imagePaths: paths,
-                      initialIndex: index,
-                    ),
-                  ),
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    EncryptedImageView(
-                      storedPath: paths[index],
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    Positioned(
-                      left: 12,
-                      bottom: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.65),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.lock_outline,
-                              size: 13,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              paths.length > 1
-                                  ? '$slot (${index + 1}/${paths.length}) · Tap to zoom'
-                                  : 'Encrypted · Tap to zoom',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
+              return Semantics(
+                button: true,
+                label: '$slot, encrypted photo. Tap to zoom',
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => EncryptedPhotoViewerScreen(
+                        title: widget.title,
+                        imagePaths: paths,
+                        initialIndex: index,
                       ),
                     ),
-                  ],
+                  ),
+                  child: ExcludeSemantics(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        EncryptedImageView(
+                          storedPath: paths[index],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        Positioned(
+                          left: 12,
+                          bottom: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.65),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.lock_outline,
+                                  size: 13,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  paths.length > 1
+                                      ? '$slot (${index + 1}/${paths.length}) · Tap to zoom'
+                                      : 'Encrypted · Tap to zoom',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             },
@@ -283,6 +330,35 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
   }
 }
 
+class _DetailSection extends StatelessWidget {
+  const _DetailSection({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              header: true,
+              child: Text(title, style: theme.textTheme.titleMedium),
+            ),
+            const SizedBox(height: 4),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _InfoTile extends StatelessWidget {
   const _InfoTile({
     required this.icon,
@@ -297,16 +373,21 @@ class _InfoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: theme.colorScheme.primary),
-      title: Text(
-        label,
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
+    return Semantics(
+      label: '$label, $value',
+      child: ListTile(
+        dense: true,
+        minLeadingWidth: 24,
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon, color: theme.colorScheme.primary),
+        title: Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
+        subtitle: Text(value, style: theme.textTheme.bodyLarge),
       ),
-      subtitle: Text(value, style: theme.textTheme.bodyLarge),
     );
   }
 }

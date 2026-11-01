@@ -291,15 +291,18 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit document' : 'Add document'),
-        actions: [
-          TextButton(onPressed: _save, child: const Text('Save')),
-        ],
       ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            _SectionHeading(
+              icon: Icons.document_scanner_outlined,
+              title: _isEditing ? 'Document details' : 'Add to your vault',
+              description: 'Photos stay encrypted on this device. Only title and expiry date are required.',
+            ),
+            const SizedBox(height: 16),
             _PhotosSection(
               imagePaths: _imagePaths,
               maxPhotos: _maxPhotos,
@@ -321,7 +324,9 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
                 );
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            const _SectionLabel('Document'),
+            const SizedBox(height: 10),
             TextFormField(
               controller: _titleController,
               textCapitalization: TextCapitalization.words,
@@ -332,23 +337,33 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
               validator: (value) =>
                   (value == null || value.trim().isEmpty) ? 'Title is required' : null,
             ),
-            const SizedBox(height: 20),
-            Text('Category', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final c in DocumentCategory.all)
-                  ChoiceChip(
-                    avatar: Icon(c.icon, size: 18),
-                    label: Text(c.label),
-                    selected: _categoryKey == c.key,
-                    onSelected: (_) => setState(() => _categoryKey = c.key),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _categoryKey,
+              decoration: const InputDecoration(
+                labelText: 'Category',
+                prefixIcon: Icon(Icons.category_outlined),
+              ),
+              items: [
+                for (final category in DocumentCategory.all)
+                  DropdownMenuItem(
+                    value: category.key,
+                    child: Row(
+                      children: [
+                        Icon(category.icon, size: 20),
+                        const SizedBox(width: 12),
+                        Text(category.label),
+                      ],
+                    ),
                   ),
               ],
+              onChanged: (value) {
+                if (value != null) setState(() => _categoryKey = value);
+              },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            const _SectionLabel('Important dates'),
+            const SizedBox(height: 10),
             _DateTile(
               label: 'Expiry date *',
               value: _expiryDate == null ? null : dateFormat.format(_expiryDate!),
@@ -392,7 +407,9 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
                   ? null
                   : () => setState(() => _issueDate = null),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            const _SectionLabel('Owner and private details'),
+            const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               initialValue: profiles.any((p) => p.id == _profileId)
                   ? _profileId
@@ -423,7 +440,9 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
               maxLines: 3,
               decoration: const InputDecoration(labelText: 'Notes (optional)'),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
+            const _SectionLabel('Reminders'),
+            const SizedBox(height: 6),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Remind me before it expires'),
@@ -453,16 +472,88 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
               ),
             ],
             const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.check),
-              label: Text(_isEditing ? 'Save changes' : 'Save document'),
+            SafeArea(
+              top: false,
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _save,
+                  icon: const Icon(Icons.check),
+                  label: Text(_isEditing ? 'Save changes' : 'Save document'),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: theme.colorScheme.onPrimaryContainer),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        label,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+      );
 }
 
 class _PhotosSection extends StatelessWidget {
@@ -618,11 +709,15 @@ class _PhotoThumbnailTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          GestureDetector(
-            onTap: onTap,
-            child: EncryptedImageView(
-              storedPath: storedPath,
-              borderRadius: BorderRadius.circular(14),
+          Semantics(
+            button: true,
+            label: '$label encrypted document photo. Open preview.',
+            child: GestureDetector(
+              onTap: onTap,
+              child: EncryptedImageView(
+                storedPath: storedPath,
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
           Positioned(
@@ -653,9 +748,13 @@ class _PhotoThumbnailTile extends StatelessWidget {
               child: InkWell(
                 customBorder: const CircleBorder(),
                 onTap: onRemove,
-                child: const Padding(
-                  padding: EdgeInsets.all(5),
-                  child: Icon(Icons.close, size: 16, color: Colors.white),
+                child: const Tooltip(
+                  message: 'Remove photo',
+                  child: SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: Icon(Icons.close, size: 20, color: Colors.white),
+                  ),
                 ),
               ),
             ),

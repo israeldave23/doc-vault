@@ -20,50 +20,63 @@ class ProfilesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('People')),
-      body: ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+      body: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
         itemCount: profiles.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
         itemBuilder: (context, index) {
           final profile = profiles[index];
           final count = documents.where((d) => d.profileId == profile.id).length;
           final isDefault = profile.id == Profile.selfId;
 
-          return ListTile(
-            leading: CircleAvatar(
-              child: Text(
-                profile.avatarEmoji ??
-                    (profile.name.isEmpty ? '?' : profile.name.substring(0, 1)),
+          return Card(
+            child: ListTile(
+              leading: CircleAvatar(
+                child: Text(
+                  profile.avatarEmoji ??
+                      (profile.name.isEmpty ? '?' : profile.name.substring(0, 1)),
+                ),
+              ),
+              title: Text(profile.name),
+              subtitle: Text(count == 1 ? '1 document' : '$count documents'),
+              trailing: PopupMenuButton<String>(
+                tooltip: 'More options for ${profile.name}',
+                onSelected: (action) async {
+                  switch (action) {
+                    case 'rename':
+                      await _showProfileDialog(
+                        context: context,
+                        ref: ref,
+                        existing: profile,
+                      );
+                    case 'delete':
+                      await _confirmDelete(
+                        context: context,
+                        ref: ref,
+                        profile: profile,
+                        documentCount: count,
+                      );
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'rename', child: Text('Rename')),
+                  if (!isDefault)
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        'Delete',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              onTap: () => _showProfileDialog(
+                context: context,
+                ref: ref,
+                existing: profile,
               ),
             ),
-            title: Text(profile.name),
-            subtitle: Text(count == 1 ? '1 document' : '$count documents'),
-            trailing: PopupMenuButton<String>(
-              tooltip: 'More options',
-              onSelected: (action) async {
-                switch (action) {
-                  case 'rename':
-                    await _showProfileDialog(
-                      context: context,
-                      ref: ref,
-                      existing: profile,
-                    );
-                  case 'delete':
-                    await _confirmDelete(
-                      context: context,
-                      ref: ref,
-                      profile: profile,
-                      documentCount: count,
-                    );
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'rename', child: Text('Rename')),
-                if (!isDefault)
-                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
-              ],
-            ),
-            onTap: () => _showProfileDialog(context: context, ref: ref, existing: profile),
           );
         },
       ),
@@ -174,6 +187,10 @@ class ProfilesScreen extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Delete'),
           ),

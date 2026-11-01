@@ -90,42 +90,62 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 48),
-            Icon(Icons.lock_outline,
-                size: 56, color: theme.colorScheme.primary),
-            const SizedBox(height: 12),
-            Text('Document Vault is locked', style: theme.textTheme.titleLarge),
-            const SizedBox(height: 24),
-            _PinDots(filled: _entered.length),
-            SizedBox(
-              height: 32,
-              child: _error == null
-                  ? null
-                  : Text(
-                      _error!,
-                      style: TextStyle(color: theme.colorScheme.error),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Column(
+                children: [
+                  ExcludeSemantics(
+                    child: Icon(
+                      Icons.lock_outline,
+                      size: 56,
+                      color: theme.colorScheme.primary,
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Document Vault is locked',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 24),
+                  _PinDots(filled: _entered.length),
+                  SizedBox(
+                    height: 40,
+                    child: _error == null
+                        ? null
+                        : Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: theme.colorScheme.error),
+                            ),
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+                  _Keypad(
+                    onDigit: _tap,
+                    onBackspace: _backspace,
+                    onSubmit:
+                        _entered.length >= AuthService.minPinLength && !_busy
+                            ? _verify
+                            : null,
+                    trailing: _biometricAvailable
+                        ? IconButton(
+                            iconSize: 34,
+                            tooltip: 'Unlock with biometrics',
+                            icon: const Icon(Icons.fingerprint),
+                            onPressed: _biometricUnlock,
+                          )
+                        : const SizedBox(width: 48, height: 48),
+                  ),
+                ],
+              ),
             ),
-            const Spacer(),
-            _Keypad(
-              onDigit: _tap,
-              onBackspace: _backspace,
-              onSubmit: _entered.length >= AuthService.minPinLength && !_busy
-                  ? _verify
-                  : null,
-              trailing: _biometricAvailable
-                  ? IconButton(
-                      iconSize: 34,
-                      tooltip: 'Unlock with biometrics',
-                      icon: const Icon(Icons.fingerprint),
-                      onPressed: _biometricUnlock,
-                    )
-                  : const SizedBox(width: 48, height: 48),
-            ),
-            const SizedBox(height: 24),
-          ],
+          ),
         ),
       ),
     );
@@ -140,19 +160,24 @@ class _PinDots extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (var i = 0; i < AuthService.maxPinLength; i++)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Icon(
-              i < filled ? Icons.circle : Icons.circle_outlined,
-              size: 18,
-              color: i < filled ? scheme.primary : scheme.outline,
-            ),
-          ),
-      ],
+    return Semantics(
+      label: '$filled of ${AuthService.maxPinLength} PIN digits entered',
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < AuthService.maxPinLength; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(
+                  i < filled ? Icons.circle : Icons.circle_outlined,
+                  size: 18,
+                  color: i < filled ? scheme.primary : scheme.outline,
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -176,7 +201,11 @@ class _Keypad extends StatelessWidget {
           width: 72,
           height: 64,
           child: TextButton(
+            style: TextButton.styleFrom(
+              shape: const CircleBorder(),
+            ),
             onPressed: () => onDigit(label),
+            semanticsLabel: 'Digit $label',
             child: Text(label, style: const TextStyle(fontSize: 24)),
           ),
         );
@@ -211,7 +240,14 @@ class _Keypad extends StatelessWidget {
             ),
           ],
         ),
-        FilledButton(onPressed: onSubmit, child: const Text('Unlock')),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: 216,
+          child: FilledButton(
+            onPressed: onSubmit,
+            child: const Text('Unlock'),
+          ),
+        ),
       ],
     );
   }

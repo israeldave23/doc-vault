@@ -23,12 +23,24 @@ class DashboardScreen extends ConsumerWidget {
     final selectedStatus = ref.watch(statusFilterProvider);
     final allDocuments = ref.watch(documentsProvider);
     final settings = ref.watch(settingsProvider);
+    final theme = Theme.of(context);
 
     final expiringSoon = allDocuments.where((d) => d.daysRemaining < 30).length;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Document Vault'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Document Vault'),
+            Text(
+              'Your documents, organized',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Settings',
@@ -42,18 +54,42 @@ class DashboardScreen extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: TextField(
-              onChanged: (value) => ref.read(searchQueryProvider.notifier).update(value),
-              decoration: const InputDecoration(
-                hintText: 'Search documents',
-                prefixIcon: Icon(Icons.search),
-                isDense: true,
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+            child: Semantics(
+              textField: true,
+              label: 'Search documents',
+              child: TextField(
+                onChanged: (value) =>
+                    ref.read(searchQueryProvider.notifier).update(value),
+                textInputAction: TextInputAction.search,
+                decoration: const InputDecoration(
+                  hintText: 'Search by document name',
+                  prefixIcon: Icon(Icons.search),
+                  isDense: true,
+                ),
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 2),
+            child: Row(
+              children: [
+                Text('Profiles', style: theme.textTheme.labelLarge),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ProfilesScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.manage_accounts_outlined, size: 18),
+                  label: const Text('Manage'),
+                ),
+              ],
+            ),
+          ),
           SizedBox(
-            height: 44,
+            height: 40,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -69,19 +105,18 @@ class DashboardScreen extends ConsumerWidget {
                     selected: selectedProfile == p.id,
                     onSelected: () => ref.read(selectedProfileIdProvider.notifier).select(p.id),
                   ),
-                _ProfileFilterChip(
-                  label: 'Manage',
-                  icon: Icons.people_outline,
-                  selected: false,
-                  onSelected: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => const ProfilesScreen()),
-                  ),
-                ),
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Status', style: theme.textTheme.labelLarge),
+            ),
+          ),
           SizedBox(
-            height: 44,
+            height: 40,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
@@ -110,6 +145,22 @@ class DashboardScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: _AlertBanner(count: expiringSoon),
             ),
+          if (documents.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Row(
+                children: [
+                  Text('Documents', style: theme.textTheme.titleMedium),
+                  const Spacer(),
+                  Text(
+                    '${documents.length} shown',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: documents.isEmpty
                 ? (allDocuments.isEmpty
@@ -123,7 +174,7 @@ class DashboardScreen extends ConsumerWidget {
                         },
                       ))
                 : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                     itemCount: documents.length,
                     separatorBuilder: (context, index) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
@@ -178,6 +229,7 @@ class _ProfileFilterChip extends StatelessWidget {
         selected: selected,
         onSelected: (_) => onSelected(),
         showCheckmark: false,
+        visualDensity: VisualDensity.compact,
       ),
     );
   }
@@ -206,6 +258,7 @@ class _StatusFilterChip extends StatelessWidget {
         selected: selected,
         onSelected: (_) => onSelected(),
         showCheckmark: false,
+        visualDensity: VisualDensity.compact,
       ),
     );
   }
@@ -219,25 +272,35 @@ class _AlertBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: scheme.errorContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              count == 1
-                  ? '1 document is expired or expiring within 30 days'
-                  : '$count documents are expired or expiring within 30 days',
-              style: TextStyle(color: scheme.onErrorContainer, fontWeight: FontWeight.w600),
-            ),
+    final message = count == 1
+        ? '1 document is expired or expiring within 30 days'
+        : '$count documents are expired or expiring within 30 days';
+    return Semantics(
+      liveRegion: true,
+      label: 'Attention. $message',
+      child: ExcludeSemantics(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: scheme.errorContainer,
+            borderRadius: BorderRadius.circular(12),
           ),
-        ],
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  style: TextStyle(
+                    color: scheme.onErrorContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
