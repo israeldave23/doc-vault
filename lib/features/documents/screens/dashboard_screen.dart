@@ -415,13 +415,13 @@ class _StatusFilters extends ConsumerWidget {
     final options = <(String, ExpiryStatus?, int, Color)>[
       ('All', null, filtered.length, Theme.of(context).colorScheme.primary),
       ('Expired', ExpiryStatus.expired, counts[ExpiryStatus.expired]!,
-          AppTheme.statusExpiredLight),
+          AppColors.statusExpiredLight),
       ('Expiring soon', ExpiryStatus.critical, counts[ExpiryStatus.critical]!,
-          AppTheme.statusCriticalLight),
+          AppColors.statusCriticalLight),
       ('Renew soon', ExpiryStatus.warning, counts[ExpiryStatus.warning]!,
-          AppTheme.statusWarningLight),
+          AppColors.statusWarningLight),
       ('Valid', ExpiryStatus.ok, counts[ExpiryStatus.ok]!,
-          AppTheme.statusOkLight),
+          AppColors.statusOkLight),
     ];
     return SizedBox(
       height: 48,
