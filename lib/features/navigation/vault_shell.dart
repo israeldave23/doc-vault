@@ -43,7 +43,6 @@ class _VaultShellState extends State<VaultShell> {
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _selectedIndex,
-          height: 72,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           onDestinationSelected: (index) {
             FocusManager.instance.primaryFocus?.unfocus();

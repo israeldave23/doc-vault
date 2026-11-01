@@ -26,6 +26,7 @@ class DocumentCard extends StatelessWidget {
 
     return Semantics(
       button: onTap != null,
+      onTap: onTap,
       label: semanticLabel,
       child: ExcludeSemantics(
         child: Card(
@@ -77,12 +78,12 @@ class DocumentCard extends StatelessWidget {
                                     color: scheme.onSurfaceVariant,
                                   ),
                                   const SizedBox(width: 4),
-                                  Text(
+                                  Flexible(child: Text(
                                     'Expires $dateText',
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: scheme.onSurfaceVariant,
                                     ),
-                                  ),
+                                  )),
                                 ],
                               ),
                             ],

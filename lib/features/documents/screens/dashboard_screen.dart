@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/expiry_status.dart';
 import '../../ads/widgets/ad_banner.dart';
 import '../../profiles/models/profile.dart';
@@ -63,9 +62,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final selectedStatus = ref.watch(statusFilterProvider);
     final settings = ref.watch(settingsProvider);
     final theme = Theme.of(context);
-    final profileDocuments = allDocuments.where(
-      (document) => selectedProfile == null || document.profileId == selectedProfile,
-    );
+    final profileDocuments = allDocuments
+        .where(
+          (document) =>
+              selectedProfile == null || document.profileId == selectedProfile,
+        )
+        .toList(growable: false);
     final expiredCount = profileDocuments
         .where((document) => document.status == ExpiryStatus.expired)
         .length;
@@ -143,29 +145,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
           ),
-          if (expiredCount + expiringCount > 0)
+          if (allDocuments.isNotEmpty)
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
               sliver: SliverToBoxAdapter(
-                child: _AttentionCard(
-                  expiredCount: expiredCount,
-                  expiringCount: expiringCount,
-                  onTap: () {
-                    ref.read(searchQueryProvider.notifier).update('');
-                    _searchController.clear();
-                    ref.read(statusFilterProvider.notifier).select(
-                          expiredCount > 0
-                              ? ExpiryStatus.expired
-                              : ExpiryStatus.critical,
-                        );
-                  },
+                child: AnimatedSwitcher(
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 180),
+                  child: expiredCount + expiringCount > 0
+                      ? _AttentionCard(
+                          key: const ValueKey('attention'),
+                          expiredCount: expiredCount,
+                          expiringCount: expiringCount,
+                          onTap: () {
+                            ref.read(searchQueryProvider.notifier).update('');
+                            _searchController.clear();
+                            ref.read(statusFilterProvider.notifier).select(
+                                  expiredCount > 0
+                                      ? ExpiryStatus.expired
+                                      : ExpiryStatus.critical,
+                                );
+                          },
+                        )
+                      : const _AllCaughtUpCard(key: ValueKey('caught-up')),
                 ),
               ),
             ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
             sliver: SliverToBoxAdapter(
-              child: Row(
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
                     'Your Documents',
@@ -173,7 +185,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const Spacer(),
                   TextButton(
                     onPressed: _viewAll,
                     child: const Text('View all'),
@@ -261,7 +272,7 @@ class VaultProfileSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
-      height: 48,
+      height: 32 + MediaQuery.textScalerOf(context).scale(20),
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -331,6 +342,7 @@ class _ProfileChip extends StatelessWidget {
 
 class _AttentionCard extends StatelessWidget {
   const _AttentionCard({
+    super.key,
     required this.expiredCount,
     required this.expiringCount,
     required this.onTap,
@@ -350,6 +362,8 @@ class _AttentionCard extends StatelessWidget {
     ];
     return Semantics(
       button: true,
+      excludeSemantics: true,
+      onTap: onTap,
       label: 'Needs your attention. $count documents. ${parts.join(', ')}.',
       child: Card(
         color: theme.colorScheme.errorContainer,
@@ -423,16 +437,16 @@ class VaultStatusFilters extends ConsumerWidget {
     final options = <(String, ExpiryStatus?, int, Color)>[
       ('All', null, filtered.length, Theme.of(context).colorScheme.primary),
       ('Expired', ExpiryStatus.expired, counts[ExpiryStatus.expired]!,
-          AppColors.statusExpiredLight),
+          ExpiryStatus.expired.colorFor(context)),
       ('Expiring soon', ExpiryStatus.critical, counts[ExpiryStatus.critical]!,
-          AppColors.statusCriticalLight),
+          ExpiryStatus.critical.colorFor(context)),
       ('Renew soon', ExpiryStatus.warning, counts[ExpiryStatus.warning]!,
-          AppColors.statusWarningLight),
+          ExpiryStatus.warning.colorFor(context)),
       ('Valid', ExpiryStatus.ok, counts[ExpiryStatus.ok]!,
-          AppColors.statusOkLight),
+          ExpiryStatus.ok.colorFor(context)),
     ];
     return SizedBox(
-      height: 48,
+      height: 32 + MediaQuery.textScalerOf(context).scale(20),
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -485,18 +499,22 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isEmpty = allDocuments.isEmpty;
+    final profileEmpty = selectedProfile != null &&
+        !allDocuments.any((document) => document.profileId == selectedProfile);
     final title = isEmpty
         ? 'No documents yet'
         : hasSearch
             ? 'No matching documents'
-            : selectedProfile != null
-                ? 'No documents for this person'
+            : profileEmpty
+                ? 'No documents for this profile'
                 : 'No ${selectedStatus?.label.toLowerCase() ?? 'matching'} documents';
     final message = isEmpty
-        ? 'Add a passport, license or ID and get reminders before it expires. Your documents stay on this device.'
+        ? 'Add your first document to keep everything organized.'
         : hasSearch
-            ? 'Try another search or clear it to see your documents.'
-            : 'Try changing the selected profile or status filter.';
+            ? 'Try another keyword or adjust your filters.'
+            : profileEmpty
+                ? 'Add a document for this person to keep their important dates organized.'
+                : 'Try changing the selected profile or status filter.';
     final action = isEmpty
         ? FilledButton.icon(
             onPressed: () => Navigator.of(context).push(
@@ -510,7 +528,7 @@ class _EmptyState extends StatelessWidget {
         : OutlinedButton.icon(
             onPressed: hasSearch
                 ? onClearSearch
-                : selectedProfile != null
+                : profileEmpty
                     ? onClearProfile
                     : onClearStatus,
             icon: const Icon(Icons.filter_alt_off_outlined),
@@ -527,12 +545,16 @@ class _EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isEmpty ? Icons.folder_open : Icons.search_off,
+              isEmpty
+                  ? Icons.folder_open
+                  : profileEmpty && !hasSearch
+                      ? Icons.person_outline
+                      : Icons.search_off,
               size: 64,
               color: theme.colorScheme.outline,
             ),
             const SizedBox(height: 16),
-            Text(title, style: theme.textTheme.titleLarge),
+            Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
               message,
@@ -548,4 +570,18 @@ class _EmptyState extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AllCaughtUpCard extends StatelessWidget {
+  const _AllCaughtUpCard({super.key});
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: ListTile(
+          leading: Icon(Icons.check_circle_outline,
+              color: ExpiryStatus.ok.colorFor(context)),
+          title: const Text('All caught up!'),
+          subtitle: const Text('No documents need your attention right now.'),
+        ),
+      );
 }

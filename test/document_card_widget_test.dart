@@ -52,6 +52,29 @@ void main() {
     expect(find.textContaining('Expires '), findsOneWidget);
   });
 
+  testWidgets('document card wraps on narrow width', (tester) async {
+    final document = Document(
+      id: 'passport',
+      title: 'Very long document title that should wrap',
+      category: 'passport',
+      expiryDate: DateTime.now().add(const Duration(days: 45)),
+      profileId: 'me',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(280, 600)),
+          child: Scaffold(body: DocumentCard(document: document)),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(DocumentCard), findsOneWidget);
+    expect(find.textContaining('Very long document title'), findsOneWidget);
+  });
+
   testWidgets('document card preserves tap interaction', (tester) async {
     var tapped = false;
     final document = Document(
