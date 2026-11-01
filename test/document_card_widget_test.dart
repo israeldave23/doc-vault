@@ -90,10 +90,12 @@ void main() {
       profileId: 'me',
     );
 
-    Future<Color> pump(Brightness brightness) async {
+    Future<Color> pump(ThemeMode mode) async {
       await tester.pumpWidget(
         MaterialApp(
-          theme: ThemeData(brightness: brightness),
+          theme: ThemeData(brightness: Brightness.light),
+          darkTheme: ThemeData(brightness: Brightness.dark),
+          themeMode: mode,
           home: Scaffold(body: DocumentCard(document: document)),
         ),
       );
@@ -101,8 +103,8 @@ void main() {
       return ExpiryStatus.expired.colorFor(context);
     }
 
-    final light = await pump(Brightness.light);
-    final dark = await pump(Brightness.dark);
+    final light = await pump(ThemeMode.light);
+    final dark = await pump(ThemeMode.dark);
     expect(light, isNot(dark));
     expect(find.text('Expired'), findsOneWidget);
   });
