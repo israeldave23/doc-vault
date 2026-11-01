@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/documents/providers/document_providers.dart';
-import 'features/documents/screens/dashboard_screen.dart';
+import 'features/navigation/vault_shell.dart';
 import 'features/lock/widgets/lock_gate.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'features/pro/services/pro_service.dart';
@@ -48,7 +48,7 @@ class _DocVaultAppState extends ConsumerState<DocVaultApp> {
       darkTheme: AppTheme.dark,
       themeMode: themeMode,
       home: settings.onboardingCompleted
-          ? const DashboardScreen()
+          ? const VaultShell()
           : const OnboardingScreen(),
       // Wraps every route (home, pushed screens, dialogs) so the lock shows
       // even when the app is backgrounded on a sub-screen.

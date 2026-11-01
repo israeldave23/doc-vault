@@ -234,8 +234,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const AddEditDocumentScreen()),
         ),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        tooltip: 'Add document',
         icon: const Icon(Icons.add),
-        label: const Text('Add'),
+        label: const Text('Add document'),
       ),
       bottomNavigationBar: settings.isPro ? null : const AdBanner(),
     );
