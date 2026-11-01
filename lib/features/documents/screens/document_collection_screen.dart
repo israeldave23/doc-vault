@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/expiry_status.dart';
 import '../providers/document_providers.dart';
+import '../../profiles/providers/profile_providers.dart';
+import 'dashboard_screen.dart';
 import '../widgets/document_card.dart';
 import 'document_detail_screen.dart';
 
@@ -83,6 +85,25 @@ class _DocumentCollectionScreenState
               ),
             ),
           ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: VaultProfileSelector(
+                profiles: ref.watch(profilesProvider),
+                selectedProfile: ref.watch(selectedProfileIdProvider),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: VaultStatusFilters(
+                selectedStatus: ref.watch(statusFilterProvider),
+                documents: ref.watch(documentsProvider),
+                selectedProfile: ref.watch(selectedProfileIdProvider),
+              ),
+            ),
+          ),
           if (documents.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
@@ -109,7 +130,7 @@ class _DocumentCollectionScreenState
                       const SizedBox(height: 8),
                       Text(
                         widget.alertsOnly
-                            ? 'You are all caught up.'
+                            ? 'No expired or expiring-soon documents match your filters.'
                             : 'Try a different search.',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium?.copyWith(

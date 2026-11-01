@@ -53,6 +53,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(searchQueryProvider, (_, value) {
+      if (_searchController.text != value) _searchController.text = value;
+    });
     final documents = ref.watch(visibleDocumentsProvider);
     final allDocuments = ref.watch(documentsProvider);
     final profiles = ref.watch(profilesProvider);
@@ -134,7 +137,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: _ProfileSelector(
+              child: VaultProfileSelector(
                 profiles: profiles,
                 selectedProfile: selectedProfile,
               ),
@@ -182,7 +185,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.only(left: 20, top: 4, bottom: 12),
-              child: _StatusFilters(
+              child: VaultStatusFilters(
                 selectedStatus: selectedStatus,
                 documents: allDocuments,
                 selectedProfile: selectedProfile,
@@ -245,8 +248,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
-class _ProfileSelector extends ConsumerWidget {
-  const _ProfileSelector({
+class VaultProfileSelector extends ConsumerWidget {
+  const VaultProfileSelector({
     required this.profiles,
     required this.selectedProfile,
   });
@@ -394,8 +397,8 @@ class _AttentionCard extends StatelessWidget {
   }
 }
 
-class _StatusFilters extends ConsumerWidget {
-  const _StatusFilters({
+class VaultStatusFilters extends ConsumerWidget {
+  const VaultStatusFilters({
     required this.selectedStatus,
     required this.documents,
     required this.selectedProfile,
