@@ -26,7 +26,7 @@ void main() {
     expect(semantics.label, contains('Philippine Passport'));
     expect(semantics.label, contains('Passport'));
     expect(semantics.label, contains('Renew soon'));
-    expect(semantics.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(semantics.flagsCollection.isButton, isTrue);
   });
 
   testWidgets('document card remains usable with large text', (tester) async {

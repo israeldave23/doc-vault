@@ -211,20 +211,17 @@ class _ProfileFilterChip extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onSelected,
-    this.icon,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onSelected;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
-        avatar: icon == null ? null : Icon(icon, size: 18),
         label: Text(label),
         selected: selected,
         onSelected: (_) => onSelected(),

@@ -197,16 +197,20 @@ class _Keypad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget key(String label) => SizedBox(
-          width: 72,
-          height: 64,
-          child: TextButton(
-            style: TextButton.styleFrom(
-              shape: const CircleBorder(),
+    Widget key(String label) => Semantics(
+          label: 'Digit $label',
+          button: true,
+          excludeSemantics: true,
+          child: SizedBox(
+            width: 72,
+            height: 64,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                shape: const CircleBorder(),
+              ),
+              onPressed: () => onDigit(label),
+              child: Text(label, style: const TextStyle(fontSize: 24)),
             ),
-            onPressed: () => onDigit(label),
-            semanticsLabel: 'Digit $label',
-            child: Text(label, style: const TextStyle(fontSize: 24)),
           ),
         );
 
