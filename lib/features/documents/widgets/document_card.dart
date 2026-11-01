@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/categories.dart';
 import '../../../core/utils/expiry_status.dart';
 import '../models/document.dart';
-import 'encrypted_image_view.dart';
 import 'status_chip.dart';
 
 class DocumentCard extends StatelessWidget {
@@ -16,10 +15,11 @@ class DocumentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final category = DocumentCategory.byKey(document.category);
     final status = document.status;
+    final statusColor = status.colorFor(context);
     final dateText = DateFormat.yMMMd().format(document.expiryDate);
-    final hasPhotos = document.imagePaths.isNotEmpty;
     final remainingText = daysRemainingLabel(document.daysRemaining);
     final semanticLabel = '${document.title}, ${category.label}, '
         '${status.label}, $remainingText, expires $dateText';
@@ -30,91 +30,86 @@ class DocumentCard extends StatelessWidget {
       child: ExcludeSemantics(
         child: Card(
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: hasPhotos
-                        ? EncryptedImageView(
-                            storedPath: document.imagePaths.first,
-                            borderRadius: BorderRadius.circular(12),
-                          )
-                        : Container(
-                            decoration: BoxDecoration(
-                              color: status.color.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
+          child: Material(
+            color: scheme.surface,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(18),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _CategoryIcon(icon: category.icon, color: statusColor),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            document.title,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface,
                             ),
-                            child: Icon(category.icon, color: status.color),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          document.title,
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          category.label,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.event_outlined,
-                              size: 16,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Expires $dateText',
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text(
+                                category.label,
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                                  color: scheme.onSurfaceVariant,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            StatusChip(status: status, compact: true),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.event_outlined,
+                                    size: 14,
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Expires $dateText',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              StatusChip(status: status, compact: true),
+                              Text(
                                 remainingText,
-                                style: theme.textTheme.labelMedium
-                                    ?.copyWith(color: status.color),
-                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: statusColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.chevron_right, color: theme.colorScheme.outline),
-                ],
+                    const SizedBox(width: 4),
+                    Icon(Icons.chevron_right, color: scheme.outline, size: 20),
+                  ],
+                ),
               ),
             ),
           ),
@@ -122,4 +117,22 @@ class DocumentCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CategoryIcon extends StatelessWidget {
+  const _CategoryIcon({required this.icon, required this.color});
+
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: color, size: 22),
+      );
 }

@@ -1,5 +1,6 @@
 import 'package:doc_vault/features/documents/models/document.dart';
 import 'package:doc_vault/features/documents/widgets/document_card.dart';
+import 'package:doc_vault/core/utils/expiry_status.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,5 +50,60 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Expiring soon'), findsOneWidget);
+    expect(find.textContaining('Expires '), findsOneWidget);
+  });
+
+  testWidgets('document card preserves tap interaction', (tester) async {
+    var tapped = false;
+    final document = Document(
+      id: 'insurance',
+      title: 'Health Insurance',
+      category: 'insurance',
+      expiryDate: DateTime.now().add(const Duration(days: 120)),
+      profileId: 'me',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: DocumentCard(
+            document: document,
+            onTap: () => tapped = true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(DocumentCard));
+    expect(tapped, isTrue);
+    expect(find.text('Insurance'), findsOneWidget);
+    expect(find.text('Valid'), findsOneWidget);
+  });
+
+  testWidgets('status presentation adapts between light and dark themes',
+      (tester) async {
+    final document = Document(
+      id: 'expired',
+      title: 'Expired Passport',
+      category: 'passport',
+      expiryDate: DateTime.now().subtract(const Duration(days: 2)),
+      profileId: 'me',
+    );
+
+    Future<Color> pump(Brightness brightness) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(brightness: brightness),
+          home: Scaffold(body: DocumentCard(document: document)),
+        ),
+      );
+      final context = tester.element(find.byType(DocumentCard));
+      return ExpiryStatus.expired.colorFor(context);
+    }
+
+    final light = await pump(Brightness.light);
+    final dark = await pump(Brightness.dark);
+    expect(light, isNot(dark));
+    expect(find.text('Expired'), findsOneWidget);
   });
 }

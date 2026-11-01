@@ -16,6 +16,7 @@ enum ExpiryStatus {
     return ExpiryStatus.ok;
   }
 
+  /// Legacy light-theme color used by non-widget code.
   Color get color {
     switch (this) {
       case ExpiryStatus.expired:
@@ -27,6 +28,25 @@ enum ExpiryStatus {
       case ExpiryStatus.ok:
         return AppColors.statusOk;
     }
+  }
+
+  /// Theme-aware presentation color. Expiry thresholds remain defined only in
+  /// [fromDaysRemaining]; widgets use this method instead of recalculating.
+  Color colorFor(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return switch (this) {
+      ExpiryStatus.expired => dark
+          ? AppColors.statusExpiredDark
+          : AppColors.statusExpiredLight,
+      ExpiryStatus.critical => dark
+          ? AppColors.statusCriticalDark
+          : AppColors.statusCriticalLight,
+      ExpiryStatus.warning => dark
+          ? AppColors.statusWarningDark
+          : AppColors.statusWarningLight,
+      ExpiryStatus.ok =>
+        dark ? AppColors.statusOkDark : AppColors.statusOkLight,
+    };
   }
 
   String get label {
