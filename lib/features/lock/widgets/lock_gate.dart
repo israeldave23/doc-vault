@@ -78,18 +78,23 @@ class _LockGateState extends ConsumerState<LockGate>
       fit: StackFit.expand,
       children: [
         Offstage(offstage: showLock, child: widget.child),
-        if (showLock)
-          HeroControllerScope.none(
+        Offstage(
+          offstage: !showLock,
+          child: HeroControllerScope.none(
             child: Navigator(
               onGenerateRoute: (_) => MaterialPageRoute<void>(
                 builder: (_) => LockScreen(
                   onUnlocked: () {
-                    if (mounted) setState(() => _locked = false);
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) setState(() => _locked = false);
+                    });
                   },
                 ),
               ),
             ),
           ),
+        ),
       ],
     );
   }

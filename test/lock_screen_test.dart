@@ -44,7 +44,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Delete digit'));
     await tester.pumpAndSettle();
+    for (final digit in ['1', '2', '3', '4', '5', '6']) {
+      await tester.tap(find.text(digit));
+      await tester.pump();
+    }
+    await tester.tap(find.text('Unlock'));
+    await tester.pump();
+    await tester.pumpAndSettle();
 
+    expect(find.text('Vault'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
