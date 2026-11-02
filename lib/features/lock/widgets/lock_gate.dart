@@ -77,10 +77,12 @@ class _LockGateState extends ConsumerState<LockGate>
     return Stack(
       fit: StackFit.expand,
       children: [
-        Offstage(offstage: showLock, child: widget.child),
-        Offstage(
-          offstage: !showLock,
-          child: HeroControllerScope.none(
+        // Never remove or offstage the app Navigator when settings change.
+        // Active dialogs and inherited dependencies must finish teardown in
+        // place; the opaque lock route safely covers them instead.
+        widget.child,
+        if (showLock)
+          HeroControllerScope.none(
             child: Navigator(
               onGenerateRoute: (_) => MaterialPageRoute<void>(
                 builder: (_) => LockScreen(
@@ -94,7 +96,6 @@ class _LockGateState extends ConsumerState<LockGate>
               ),
             ),
           ),
-        ),
       ],
     );
   }
