@@ -34,6 +34,21 @@ void main() {
     test('is negative for past dates', () {
       expect(daysUntil(DateTime(2026, 10, 10), now: today), -7);
     });
+
+    test('handles leap-day and month-boundary dates by local calendar day', () {
+      expect(
+        daysUntil(DateTime(2024, 2, 29, 23, 59), now: DateTime(2024, 2, 28, 23, 59)),
+        1,
+      );
+      expect(
+        daysUntil(DateTime(2024, 3, 1), now: DateTime(2024, 2, 28, 23, 59)),
+        2,
+      );
+      expect(
+        daysUntil(DateTime(2024, 2, 29), now: DateTime(2024, 2, 29, 0, 1)),
+        0,
+      );
+    });
   });
 
   group('daysRemainingLabel', () {

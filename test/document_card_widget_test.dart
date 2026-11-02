@@ -53,6 +53,8 @@ void main() {
   });
 
   testWidgets('document card wraps on narrow width', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(280, 600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final document = Document(
       id: 'passport',
       title: 'Very long document title that should wrap',

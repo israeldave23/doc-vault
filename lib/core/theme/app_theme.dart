@@ -191,7 +191,7 @@ class AppTheme {
           ),
         ),
       ),
-      dividerTheme: DividerThemeData(color: scheme.outlineVariant),
+      dividerTheme: const DividerThemeData(),
       dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sheet)),
       ),
