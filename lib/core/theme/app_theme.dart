@@ -6,13 +6,13 @@ class AppColors {
   AppColors._();
 
   /// Indigo “secure vault” palette.
-  static const seed = Color(0xFF5B65D8);
-  static const primaryContainer = Color(0xFFE1E5FF);
+  static const seed = Color(0xFF5148D8);
+  static const primaryContainer = Color(0xFFE8E6FF);
   static const background = Color(0xFFF7F8FC);
   static const surface = Color(0xFFFFFFFF);
-  static const primaryText = Color(0xFF191B24);
-  static const secondaryText = Color(0xFF6B7280);
-  static const border = Color(0xFFE5E7EB);
+  static const primaryText = Color(0xFF1B2333);
+  static const secondaryText = Color(0xFF626B7C);
+  static const border = Color(0xFFE9ECF2);
 
   static const darkPrimary = Color(0xFFAAB4FF);
   static const darkPrimaryContainer = Color(0xFF23284D);
@@ -22,10 +22,10 @@ class AppColors {
   static const darkSecondaryText = Color(0xFFA2A8B5);
   static const darkBorder = Color(0xFF313544);
 
-  static const statusExpiredLight = Color(0xFFDC4545);
-  static const statusCriticalLight = Color(0xFFE87729);
+  static const statusExpiredLight = Color(0xFFE35260);
+  static const statusCriticalLight = Color(0xFFE59A23);
   static const statusWarningLight = Color(0xFFC89A2B);
-  static const statusOkLight = Color(0xFF239B73);
+  static const statusOkLight = Color(0xFF169B72);
   static const statusExpiredDark = Color(0xFFF2797F);
   static const statusCriticalDark = Color(0xFFF5A46A);
   static const statusWarningDark = Color(0xFFE6C46C);
@@ -37,6 +37,26 @@ class AppColors {
   static const statusCritical = statusCriticalLight;
   static const statusWarning = statusWarningLight;
   static const statusOk = statusOkLight;
+}
+
+/// Shared geometry; keep screen-specific layout out of component themes.
+class AppSpacing {
+  AppSpacing._();
+
+  static const xs = 4.0;
+  static const sm = 8.0;
+  static const md = 16.0;
+  static const lg = 24.0;
+  static const xl = 32.0;
+}
+
+class AppRadii {
+  AppRadii._();
+
+  static const control = 12.0;
+  static const button = 16.0;
+  static const card = 18.0;
+  static const sheet = 24.0;
 }
 
 class AppTheme {
@@ -63,7 +83,7 @@ class AppTheme {
           isDark ? AppColors.darkPrimaryText : AppColors.primaryText,
       onSurfaceVariant:
           isDark ? AppColors.darkSecondaryText : AppColors.secondaryText,
-      outline: isDark ? AppColors.darkBorder : AppColors.border,
+      outline: isDark ? AppColors.darkSecondaryText : AppColors.secondaryText,
       outlineVariant: isDark ? AppColors.darkBorder : AppColors.border,
     );
     return ThemeData(
@@ -106,44 +126,44 @@ class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadii.card),
           side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.7)),
         ),
-        color: scheme.surfaceContainerLow,
+        color: scheme.surface,
       ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadii.button),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadii.button),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadii.button),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
         filled: true,
         fillColor: scheme.surfaceContainerLowest,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
       ),
       chipTheme: ChipThemeData(
         side: BorderSide(color: scheme.outlineVariant),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.control)),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(48, 52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.button)),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(48, 52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.button)),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -151,15 +171,29 @@ class AppTheme {
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
       ),
       listTileTheme: const ListTileThemeData(
         minTileHeight: 56,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16),
+        contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        elevation: 0,
+        backgroundColor: scheme.surface,
+        indicatorColor: scheme.primaryContainer,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: scheme.surface,
+        showDragHandle: true,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadii.sheet),
+          ),
+        ),
       ),
       dividerTheme: DividerThemeData(color: scheme.outlineVariant),
       dialogTheme: DialogThemeData(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sheet)),
       ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
