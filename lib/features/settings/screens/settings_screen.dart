@@ -175,17 +175,11 @@ class SettingsScreen extends ConsumerWidget {
       final pin = await _showPinSetup(context, title: 'Choose a PIN');
       if (pin == null) return;
       await auth.setPin(pin);
-      if (!context.mounted) return;
-      _snack(context, 'App lock is on');
-      FocusManager.instance.primaryFocus?.unfocus();
-      // Let the PIN dialog and keyboard finish deactivating before LockGate
-      // swaps in the lock screen. Updating settings in the same frame as the
-      // dialog pop can violate inherited-widget dependent assertions.
-      await WidgetsBinding.instance.endOfFrame;
-      if (!context.mounted) return;
       await ref
           .read(settingsProvider.notifier)
           .update(settings.copyWith(appLockEnabled: true));
+      if (!context.mounted) return;
+      _snack(context, 'App lock is on');
       return;
     }
 
