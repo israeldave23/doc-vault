@@ -79,12 +79,14 @@ class _LockGateState extends ConsumerState<LockGate>
       children: [
         Offstage(offstage: showLock, child: widget.child),
         if (showLock)
-          Navigator(
-            onGenerateRoute: (_) => MaterialPageRoute<void>(
-              builder: (_) => LockScreen(
-                onUnlocked: () {
-                  if (mounted) setState(() => _locked = false);
-                },
+          HeroControllerScope.none(
+            child: Navigator(
+              onGenerateRoute: (_) => MaterialPageRoute<void>(
+                builder: (_) => LockScreen(
+                  onUnlocked: () {
+                    if (mounted) setState(() => _locked = false);
+                  },
+                ),
               ),
             ),
           ),
