@@ -72,10 +72,22 @@ class _LockGateState extends ConsumerState<LockGate>
   Widget build(BuildContext context) {
     final enabled = ref.watch(settingsProvider).appLockEnabled;
     if (!enabled || !_locked) return widget.child;
-    return LockScreen(
-      onUnlocked: () {
-        if (mounted) setState(() => _locked = false);
-      },
+    // MaterialApp.builder sits above its Navigator. Keep that Navigator
+    // mounted, but hide it while locked; tooltips need a separate Overlay.
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Offstage(offstage: true, child: widget.child),
+        Navigator(
+          onGenerateRoute: (_) => MaterialPageRoute<void>(
+            builder: (_) => LockScreen(
+              onUnlocked: () {
+                if (mounted) setState(() => _locked = false);
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
