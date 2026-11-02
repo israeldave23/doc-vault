@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/expiry_status.dart';
 import '../../ads/widgets/ad_banner.dart';
 import '../../profiles/models/profile.dart';
@@ -50,6 +51,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ref.read(statusFilterProvider.notifier).select(null);
   }
 
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) return 'Good morning';
+    if (hour >= 12 && hour < 17) return 'Good afternoon';
+    if (hour >= 17 && hour < 21) return 'Good evening';
+    return 'Welcome back';
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(searchQueryProvider, (_, value) {
@@ -62,6 +71,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final selectedStatus = ref.watch(statusFilterProvider);
     final settings = ref.watch(settingsProvider);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final profileDocuments = allDocuments
         .where(
           (document) =>
@@ -74,35 +84,80 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final expiringCount = profileDocuments
         .where((document) => document.status == ExpiryStatus.critical)
         .length;
+    final validCount = profileDocuments
+        .where((document) => document.status == ExpiryStatus.ok)
+        .length;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Document Vault', style: theme.textTheme.titleLarge),
-            Text(
-              'Everything important, in one place.',
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
-            ),
-          ),
-        ],
-      ),
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
+          SliverAppBar(
+            backgroundColor: scheme.surface,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            pinned: false,
+            titleSpacing: 0,
+            title: Padding(
+              padding: const EdgeInsets.only(left: AppSpacing.md),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(AppRadii.control),
+                    ),
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      color: scheme.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _greeting,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          'Document Vault',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontSize: 22,
+                            height: 1.25,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Settings',
+                    icon: const Icon(Icons.settings_outlined),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SettingsScreen(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              0,
+            ),
             sliver: SliverToBoxAdapter(
               child: TextField(
                 controller: _searchController,
@@ -122,16 +177,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           icon: const Icon(Icons.close),
                           onPressed: _clearSearch,
                         ),
-                  filled: true,
-                  fillColor: theme.colorScheme.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
-                  ),
                 ),
               ),
             ),
@@ -145,57 +190,98 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ),
           ),
-          if (allDocuments.isNotEmpty)
+          if (allDocuments.isNotEmpty) ...[
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              sliver: SliverToBoxAdapter(
+                child: _HealthOverview(
+                  total: profileDocuments.length,
+                  valid: validCount,
+                  expired: expiredCount,
+                  expiring: expiringCount,
+                  onTap: (status) {
+                    _clearSearch();
+                    ref.read(statusFilterProvider.notifier).select(status);
+                  },
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
               sliver: SliverToBoxAdapter(
                 child: AnimatedSwitcher(
                   duration: MediaQuery.disableAnimationsOf(context)
                       ? Duration.zero
-                      : const Duration(milliseconds: 180),
+                      : const Duration(milliseconds: 200),
                   child: expiredCount + expiringCount > 0
-                      ? _AttentionCard(
-                          key: const ValueKey('attention'),
-                          expiredCount: expiredCount,
-                          expiringCount: expiringCount,
-                          onTap: () {
-                            ref.read(searchQueryProvider.notifier).update('');
-                            _searchController.clear();
-                            ref.read(statusFilterProvider.notifier).select(
-                                  expiredCount > 0
-                                      ? ExpiryStatus.expired
-                                      : ExpiryStatus.critical,
-                                );
-                          },
+                      ? _PriorityAlerts(
+                          key: const ValueKey('priority'),
+                          documents: profileDocuments
+                              .where((document) =>
+                                  document.status == ExpiryStatus.expired ||
+                                  document.status == ExpiryStatus.critical)
+                              .take(3)
+                              .toList(growable: false),
+                          onDocumentTap: (id) => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) =>
+                                  DocumentDetailScreen(documentId: id),
+                            ),
+                          ),
                         )
                       : const _AllCaughtUpCard(key: ValueKey('caught-up')),
                 ),
               ),
             ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-            sliver: SliverToBoxAdapter(
+          ],
+          if (allDocuments.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
               child: Wrap(
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
                 children: [
-                  Text(
-                    'Your Documents',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  TextButton(
+                  OutlinedButton.icon(
                     onPressed: _viewAll,
-                    child: const Text('View all'),
+                    icon: const Icon(Icons.folder_open_outlined),
+                    label: const Text('Browse all'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ProfilesScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.group_outlined),
+                    label: const Text('Manage profiles'),
                   ),
                 ],
               ),
             ),
           ),
+          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, 0),
+            sliver: SliverToBoxAdapter(
+              child: _SectionHeader(
+                title: 'Your Documents',
+                action: TextButton(
+                  onPressed: _viewAll,
+                  child: const Text('View all'),
+                ),
+              ),
+            ),
+          ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.only(left: 20, top: 4, bottom: 12),
+              padding: const EdgeInsets.only(
+                  left: AppSpacing.lg,
+                  top: AppSpacing.xs,
+                  bottom: AppSpacing.md),
               child: VaultStatusFilters(
                 selectedStatus: selectedStatus,
                 documents: allDocuments,
@@ -222,7 +308,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               sliver: SliverList.separated(
                 itemCount: documents.length,
                 itemBuilder: (context, index) {
@@ -241,15 +327,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const AddEditDocumentScreen()),
         ),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
         tooltip: 'Add document',
         icon: const Icon(Icons.add),
         label: const Text('Add document'),
@@ -340,71 +424,151 @@ class _ProfileChip extends StatelessWidget {
   }
 }
 
-class _AttentionCard extends StatelessWidget {
-  const _AttentionCard({
-    super.key,
-    required this.expiredCount,
-    required this.expiringCount,
+class _HealthOverview extends StatelessWidget {
+  const _HealthOverview({
+    required this.total,
+    required this.valid,
+    required this.expired,
+    required this.expiring,
     required this.onTap,
   });
 
-  final int expiredCount;
-  final int expiringCount;
+  final int total;
+  final int valid;
+  final int expired;
+  final int expiring;
+  final void Function(ExpiryStatus?) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tiles = <(String, int, Color, ExpiryStatus?)>[
+      ('Total', total, scheme.primary, null),
+      ('Valid', valid, ExpiryStatus.ok.colorFor(context), ExpiryStatus.ok),
+      ('Expiring', expiring,
+          ExpiryStatus.critical.colorFor(context), ExpiryStatus.critical),
+      ('Expired', expired,
+          ExpiryStatus.expired.colorFor(context), ExpiryStatus.expired),
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          children: [
+            for (final (label, count, color, status) in tiles)
+              Expanded(
+                child: _HealthTile(
+                  label: label,
+                  count: count,
+                  color: color,
+                  onTap: status == null ? null : () => onTap(status),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, this.action});
+
+  final String title;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        if (action != null) action!,
+      ],
+    );
+  }
+}
+
+class _HealthTile extends StatelessWidget {
+  const _HealthTile({required this.label, required this.count, required this.color, this.onTap});
+  final String label;
+  final int count;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final child = Column(mainAxisSize: MainAxisSize.min, children: [
+      Text('$count', style: theme.textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w800)),
+      const SizedBox(height: AppSpacing.xs),
+      Text(label, textAlign: TextAlign.center, style: theme.textTheme.labelMedium),
+    ]);
+    if (onTap == null) return child;
+    return Semantics(button: true, onTap: onTap, label: '$count $label', child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadii.control), child: child));
+  }
+}
+
+class _PriorityAlerts extends StatelessWidget {
+  const _PriorityAlerts({super.key, required this.documents, required this.onDocumentTap});
+  final List<Document> documents;
+  final ValueChanged<String> onDocumentTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Card(
+      color: scheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer), const SizedBox(width: AppSpacing.sm), Text('Needs your attention', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: scheme.onErrorContainer))]),
+          const SizedBox(height: AppSpacing.sm),
+          for (var i = 0; i < documents.length; i++) ...[
+            if (i > 0) const Divider(height: AppSpacing.md),
+            _PriorityRow(document: documents[i], onTap: () => onDocumentTap(documents[i].id)),
+          ],
+        ]),
+      ),
+    );
+  }
+}
+
+class _PriorityRow extends StatelessWidget {
+  const _PriorityRow({required this.document, required this.onTap});
+  final Document document;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final count = expiredCount + expiringCount;
-    final parts = <String>[
-      if (expiredCount > 0) '$expiredCount expired',
-      if (expiringCount > 0) '$expiringCount expiring soon',
-    ];
+    final color = document.status.colorFor(context);
     return Semantics(
       button: true,
-      excludeSemantics: true,
       onTap: onTap,
-      label: 'Needs your attention. $count documents. ${parts.join(', ')}.',
-      child: Card(
-        color: theme.colorScheme.errorContainer,
+      label: '${document.title}, ${document.status.label}, ${daysRemainingLabel(document.daysRemaining)}',
+      child: ExcludeSemantics(
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadii.control),
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: theme.colorScheme.onErrorContainer,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Needs your attention',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: theme.colorScheme.onErrorContainer,
-                        ),
-                      ),
-                      Text(
-                        '$count documents · ${parts.join(' · ')}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right,
-                  color: theme.colorScheme.onErrorContainer,
-                ),
-              ],
-            ),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+            child: Row(children: [
+              Icon(document.status == ExpiryStatus.expired ? Icons.error_outline : Icons.schedule, color: color, size: 20),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(document.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(daysRemainingLabel(document.daysRemaining), style: theme.textTheme.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w600)),
+              ])),
+              Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.outline),
+            ]),
           ),
         ),
       ),
