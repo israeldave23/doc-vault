@@ -92,29 +92,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          SliverAppBar(
-            backgroundColor: scheme.surface,
-            elevation: 0,
-            scrolledUnderElevation: 0,
-            pinned: false,
-            titleSpacing: 0,
-            title: Padding(
-              padding: const EdgeInsets.only(left: AppSpacing.md),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(AppRadii.control),
-                    ),
-                    child: Icon(
-                      Icons.lock_outline_rounded,
-                      color: scheme.primary,
-                      size: 22,
-                    ),
-                  ),
+           SliverAppBar(
+             backgroundColor: Colors.transparent,
+             elevation: 0,
+             scrolledUnderElevation: 0,
+             pinned: false,
+             titleSpacing: 0,
+             title: Padding(
+               padding: const EdgeInsets.only(left: AppSpacing.md),
+               child: Row(
+                 children: [
+                   Container(
+                     width: 44,
+                     height: 44,
+                     decoration: BoxDecoration(
+                       color: scheme.primary.withValues(alpha: 0.08),
+                       borderRadius: BorderRadius.circular(AppRadii.control),
+                     ),
+                     child: Icon(
+                       Icons.shield_outlined,
+                       color: scheme.primary,
+                       size: 22,
+                     ),
+                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
@@ -138,15 +138,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ],
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Settings',
-                    icon: const Icon(Icons.settings_outlined),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const SettingsScreen(),
-                      ),
-                    ),
-                  ),
+                   IconButton(
+                     tooltip: 'Settings',
+                     icon: const Icon(Icons.tune_outlined),
+                     onPressed: () => Navigator.of(context).push(
+                       MaterialPageRoute<void>(
+                         builder: (_) => const SettingsScreen(),
+                       ),
+                     ),
+                   ),
                 ],
               ),
             ),
@@ -194,16 +194,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               sliver: SliverToBoxAdapter(
-                child: _HealthOverview(
-                  total: profileDocuments.length,
-                  valid: validCount,
-                  expired: expiredCount,
-                  expiring: expiringCount,
-                  onTap: (status) {
-                    _clearSearch();
-                    ref.read(statusFilterProvider.notifier).select(status);
-                  },
-                ),
+               child: _AnimatedHealthOverview(
+                   total: profileDocuments.length,
+                   valid: validCount,
+                   expired: expiredCount,
+                   expiring: expiringCount,
+                   onTap: (status) {
+                     _clearSearch();
+                     ref.read(statusFilterProvider.notifier).select(status);
+                   },
+                 ),
               ),
             ),
             SliverPadding(
@@ -244,20 +244,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: _viewAll,
-                    icon: const Icon(Icons.folder_open_outlined),
-                    label: const Text('Browse all'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ProfilesScreen(),
-                      ),
-                    ),
-                    icon: const Icon(Icons.group_outlined),
-                    label: const Text('Manage profiles'),
-                  ),
+                   OutlinedButton.icon(
+                     onPressed: _viewAll,
+                     icon: const Icon(Icons.grid_3x3_outlined),
+                     label: const Text('Browse all'),
+                   ),
+                   OutlinedButton.icon(
+                     onPressed: () => Navigator.of(context).push(
+                       MaterialPageRoute<void>(
+                         builder: (_) => const ProfilesScreen(),
+                       ),
+                     ),
+                     icon: const Icon(Icons.people_outline),
+                     label: const Text('Manage profiles'),
+                   ),
                 ],
               ),
             ),
@@ -424,8 +424,8 @@ class _ProfileChip extends StatelessWidget {
   }
 }
 
-class _HealthOverview extends StatelessWidget {
-  const _HealthOverview({
+class _AnimatedHealthOverview extends StatefulWidget {
+  const _AnimatedHealthOverview({
     required this.total,
     required this.valid,
     required this.expired,
@@ -440,14 +440,37 @@ class _HealthOverview extends StatelessWidget {
   final void Function(ExpiryStatus?) onTap;
 
   @override
+  State<_AnimatedHealthOverview> createState() => _AnimatedHealthOverviewState();
+}
+
+class _AnimatedHealthOverviewState extends State<_AnimatedHealthOverview>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tiles = <(String, int, Color, ExpiryStatus?)>[
-      ('Total', total, scheme.primary, null),
-      ('Valid', valid, ExpiryStatus.ok.colorFor(context), ExpiryStatus.ok),
-      ('Expiring', expiring,
+      ('Total', widget.total, scheme.primary, null),
+      ('Valid', widget.valid, ExpiryStatus.ok.colorFor(context), ExpiryStatus.ok),
+      ('Expiring', widget.expiring,
           ExpiryStatus.critical.colorFor(context), ExpiryStatus.critical),
-      ('Expired', expired,
+      ('Expired', widget.expired,
           ExpiryStatus.expired.colorFor(context), ExpiryStatus.expired),
     ];
     return Card(
@@ -455,19 +478,63 @@ class _HealthOverview extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Row(
           children: [
-            for (final (label, count, color, status) in tiles)
+            for (var i = 0; i < tiles.length; i++)
               Expanded(
-                child: _HealthTile(
-                  label: label,
-                  count: count,
-                  color: color,
-                  onTap: status == null ? null : () => onTap(status),
+                child: _AnimatedHealthTile(
+                  label: tiles[i].$1,
+                  count: tiles[i].$2,
+                  color: tiles[i].$3,
+                  onTap: tiles[i].$4 == null ? null : () => widget.onTap(tiles[i].$4),
+                  animation: Tween<double>(begin: 0, end: 1).animate(
+                    CurvedAnimation(
+                      parent: _controller,
+                      curve: Interval(i * 0.1, 0.4 + i * 0.1, curve: Curves.easeOut),
+                    ),
+                  ),
                 ),
               ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _AnimatedHealthTile extends AnimatedWidget {
+  const _AnimatedHealthTile({
+    required this.label,
+    required this.count,
+    required this.color,
+    required this.onTap,
+    required Animation<double> animation,
+  }) : super(listenable: animation);
+
+  final String label;
+  final int count;
+  final Color color;
+  final VoidCallback? onTap;
+
+  Animation<double> get animation => listenable as Animation<double>;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final opacity = animation.value;
+    final scale = 0.8 + (animation.value * 0.2);
+    final child = Transform.scale(
+      scale: scale,
+      alignment: Alignment.center,
+      child: Opacity(
+        opacity: opacity,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('$count', style: theme.textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w800)),
+          const SizedBox(height: AppSpacing.xs),
+          Text(label, textAlign: TextAlign.center, style: theme.textTheme.labelMedium),
+        ]),
+      ),
+    );
+    if (onTap == null) return child;
+    return Semantics(button: true, onTap: onTap, label: '$count $label', child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadii.control), child: child));
   }
 }
 

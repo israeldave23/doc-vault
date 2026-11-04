@@ -5,38 +5,35 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  /// Indigo “secure vault” palette.
-  static const seed = Color(0xFF5148D8);
-  static const primaryContainer = Color(0xFFE8E6FF);
-  static const background = Color(0xFFF7F8FC);
+  static const background = Color(0xFFF5F5F7);
   static const surface = Color(0xFFFFFFFF);
-  static const primaryText = Color(0xFF1B2333);
-  static const secondaryText = Color(0xFF626B7C);
-  static const border = Color(0xFFE9ECF2);
+  static const primaryContainer = Color(0xFFF5F7FF);
+  static const secondaryContainer = Color(0xFFFAFAFA);
+  static const primaryText = Color(0xFF1A1A1A);
+  static const secondaryText = Color(0xFF666666);
+  static const border = Color(0xFFEDEDED);
+  static const borderLight = Color(0xFFF0F0F0);
+  static const seed = Color(0xFF2E5CFF);
+  static const darkPrimary = seed;
+  static const darkPrimaryContainer = primaryContainer;
+  static const darkBackground = background;
+  static const darkSurface = surface;
+  static const darkPrimaryText = primaryText;
+  static const darkSecondaryText = secondaryText;
+  static const darkBorder = border;
 
-  static const darkPrimary = Color(0xFFAAB4FF);
-  static const darkPrimaryContainer = Color(0xFF23284D);
-  static const darkBackground = Color(0xFF0F1118);
-  static const darkSurface = Color(0xFF181B25);
-  static const darkPrimaryText = Color(0xFFE8EAF2);
-  static const darkSecondaryText = Color(0xFFA2A8B5);
-  static const darkBorder = Color(0xFF313544);
-
-  static const statusExpiredLight = Color(0xFFE35260);
-  static const statusCriticalLight = Color(0xFFE59A23);
-  static const statusWarningLight = Color(0xFFC89A2B);
-  static const statusOkLight = Color(0xFF169B72);
-  static const statusExpiredDark = Color(0xFFF2797F);
-  static const statusCriticalDark = Color(0xFFF5A46A);
-  static const statusWarningDark = Color(0xFFE6C46C);
-  static const statusOkDark = Color(0xFF5BD0A8);
-
-  // Compatibility aliases used by expiry_status.dart. Presentation widgets
-  // can select dark variants in later phases without changing model logic.
-  static const statusExpired = statusExpiredLight;
-  static const statusCritical = statusCriticalLight;
-  static const statusWarning = statusWarningLight;
-  static const statusOk = statusOkLight;
+  static const statusExpired = Color(0xFFE74C3C);
+  static const statusCritical = Color(0xFFF39C12);
+  static const statusWarning = Color(0xFFF1C40F);
+  static const statusOk = Color(0xFF27AE60);
+  static const statusExpiredLight = statusExpired;
+  static const statusCriticalLight = statusCritical;
+  static const statusWarningLight = statusWarning;
+  static const statusOkLight = statusOk;
+  static const statusExpiredDark = statusExpired;
+  static const statusCriticalDark = statusCritical;
+  static const statusWarningDark = statusWarning;
+  static const statusOkDark = statusOk;
 }
 
 /// Shared geometry; keep screen-specific layout out of component themes.
@@ -53,10 +50,10 @@ class AppSpacing {
 class AppRadii {
   AppRadii._();
 
-  static const control = 12.0;
-  static const button = 16.0;
-  static const card = 18.0;
-  static const sheet = 24.0;
+  static const control = 10.0;
+  static const button = 12.0;
+  static const card = 16.0;
+  static const sheet = 20.0;
 }
 
 class AppTheme {
@@ -67,30 +64,42 @@ class AppTheme {
 
   static ThemeData _build(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
-    final scheme = ColorScheme.fromSeed(
-      seedColor: isDark ? AppColors.darkPrimary : AppColors.seed,
+    final scheme = ColorScheme(
       brightness: brightness,
-      primary: isDark ? AppColors.darkPrimary : AppColors.seed,
-      onPrimary: isDark ? Colors.black : Colors.white,
-      primaryContainer:
-          isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer,
-      onPrimaryContainer:
-          isDark ? AppColors.darkPrimaryText : AppColors.primaryText,
-      secondary: isDark ? AppColors.darkPrimary : AppColors.seed,
-      onSecondary: isDark ? Colors.black : Colors.white,
-      surface: isDark ? AppColors.darkSurface : AppColors.surface,
-      onSurface:
-          isDark ? AppColors.darkPrimaryText : AppColors.primaryText,
-      onSurfaceVariant:
-          isDark ? AppColors.darkSecondaryText : AppColors.secondaryText,
-      outline: isDark ? AppColors.darkSecondaryText : AppColors.secondaryText,
-      outlineVariant: isDark ? AppColors.darkBorder : AppColors.border,
+      primary: Color(0xFF2E5CFF),
+      onPrimary: Colors.white,
+      primaryContainer: Color(0xFFF5F7FF),
+      onPrimaryContainer: Color(0xFF002875),
+      secondary: Color(0xFF5F6368),
+      onSecondary: Colors.white,
+      secondaryContainer: Color(0xFFE8EAF4),
+      onSecondaryContainer: Color(0xFF101935),
+      tertiary: Color(0xFF2C70B6),
+      onTertiary: Colors.white,
+      tertiaryContainer: Color(0xFFDDE6FF),
+      onTertiaryContainer: Color(0xFF001B3D),
+      error: Color(0xFFB3261E),
+      onError: Colors.white,
+      errorContainer: Color(0xFFF9DEDC),
+      onErrorContainer: Color(0xFF410002),
+      background: Color(0xFFF5F5F7),
+      onBackground: Color(0xFF1A1A1A),
+      surface: Color(0xFFFFFFFF),
+      onSurface: Color(0xFF1A1A1A),
+      surfaceVariant: Color(0xFFEBEBEB),
+      onSurfaceVariant: Color(0xFF434343),
+      outline: Color(0xFF737373),
+      outlineVariant: Color(0xFFC7C7C7),
+      shadow: Color(0xFF000000),
+      scrim: Color(0xFF000000),
+      inverseSurface: isDark ? Color(0xFFE0E0E0) : Color(0xFF2D2D2D),
+      onInverseSurface: isDark ? Color(0xFF1A1A1A) : Color(0xFF2D2D2D),
+      inversePrimary: Color(0xFF4C9EFF),
     );
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor:
-          isDark ? AppColors.darkBackground : AppColors.background,
+      scaffoldBackgroundColor: AppColors.background,
       visualDensity: VisualDensity.standard,
       textTheme: Typography.material2021(platform: TargetPlatform.android)
           .black
@@ -99,14 +108,35 @@ class AppTheme {
             displayColor: scheme.onSurface,
           )
           .copyWith(
-            titleLarge: TextStyle(
-              fontSize: 26,
+            headlineLarge: TextStyle(
+              fontSize: 24,
               fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+              height: 1.2,
+            ),
+            headlineMedium: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+              height: 1.25,
+            ),
+            headlineSmall: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+            ),
+            titleLarge: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
               color: scheme.onSurface,
             ),
             titleMedium: TextStyle(
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
+              color: scheme.onSurface,
+            ),
+            bodyLarge: TextStyle(
+              fontSize: 16,
               color: scheme.onSurface,
             ),
             bodyMedium: TextStyle(
@@ -114,64 +144,84 @@ class AppTheme {
               color: scheme.onSurface,
             ),
             bodySmall: TextStyle(
-              fontSize: 13,
+              fontSize: 12,
               color: scheme.onSurfaceVariant,
+            ),
+            labelLarge: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: scheme.onPrimaryContainer,
             ),
             labelMedium: TextStyle(
               fontSize: 12,
+              fontWeight: FontWeight.w600,
               color: scheme.onSurfaceVariant,
             ),
           ),
       cardTheme: CardThemeData(
         elevation: 0,
+        shadowColor: Color(0x10000000),
+        surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.card),
-          side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.7)),
+          side: BorderSide(color: AppColors.border),
         ),
         color: scheme.surface,
       ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.button),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.button),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          side: BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.button),
           borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadii.button),
+          borderSide: BorderSide(color: scheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadii.button),
+          borderSide: BorderSide(color: scheme.error, width: 2),
+        ),
         filled: true,
-        fillColor: scheme.surfaceContainerLowest,
+        fillColor: scheme.surface,
         contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
       ),
       chipTheme: ChipThemeData(
-        side: BorderSide(color: scheme.outlineVariant),
+        side: BorderSide(color: AppColors.border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.control)),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(48, 52),
+          minimumSize: const Size(44, 44),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.button)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          elevation: 0,
+          shadowColor: Color(0x0C000000),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(48, 52),
+          minimumSize: const Size(44, 44),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.button)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          side: BorderSide(color: AppColors.border),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+        style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       listTileTheme: const ListTileThemeData(
         minTileHeight: 56,
@@ -179,11 +229,19 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         elevation: 0,
-        backgroundColor: scheme.surface,
-        indicatorColor: scheme.primaryContainer,
+        backgroundColor: Colors.white,
+        indicatorColor: Color(0xFFF0F0F0),
+        height: 56,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        destinationSelectedShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        destinationShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: scheme.surface,
+        backgroundColor: Colors.white,
         showDragHandle: true,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
@@ -191,20 +249,52 @@ class AppTheme {
           ),
         ),
       ),
-      dividerTheme: const DividerThemeData(),
+      dividerTheme: DividerThemeData(
+        color: AppColors.borderLight,
+        thickness: 1,
+        space: 1,
+      ),
       dialogTheme: DialogThemeData(
+        backgroundColor: Colors.white,
+        elevation: 24,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sheet)),
       ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: scheme.surface,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
-          color: scheme.onSurface,
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
+          color: Color(0xFF1A1A1A),
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
         ),
+        iconTheme: IconThemeData(color: Color(0xFF1A1A1A)),
+      ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: scheme.primary,
+        inactiveTrackColor: Color(0xFFF5F5F7),
+        thumbColor: scheme.primary,
+        overlayColor: Color(0x20FF5722),
+        valueIndicatorColor: scheme.primary,
+        trackHeight: 4,
+        thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6),
+        overlayShape: RoundSliderOverlayShape(overlayRadius: 12),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        checkColor: WidgetStateProperty.all(Colors.white),
+      ),
+      scaffoldMessengerTheme: SnackBarThemeData(
+        backgroundColor: Color(0xFF323232),
+        contentTextStyle: TextStyle(color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        behavior: SnackBarBehavior.floating,
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: scheme.primary,
+        linearTrackColor: Color(0xFFF5F5F7),
       ),
     );
   }

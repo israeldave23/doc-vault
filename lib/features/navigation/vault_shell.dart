@@ -41,35 +41,47 @@ class _VaultShellState extends State<VaultShell> {
           index: _selectedIndex,
           children: _destinations,
         ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _selectedIndex,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          onDestinationSelected: (index) {
-            FocusManager.instance.primaryFocus?.unfocus();
-            setState(() => _selectedIndex = index);
-          },
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Home',
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              top: BorderSide(color: Color(0xFFEDEDED), width: 1),
             ),
-            NavigationDestination(
-              icon: Icon(Icons.folder_outlined),
-              selectedIcon: Icon(Icons.folder),
-              label: 'Documents',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.notifications_outlined),
-              selectedIcon: Icon(Icons.notifications),
-              label: 'Alerts',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
-          ],
+          ),
+          child: NavigationBar(
+            selectedIndex: _selectedIndex,
+            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            height: 60,
+            indicatorColor: Color(0xFFF5F7FF),
+            onDestinationSelected: (index) {
+              FocusManager.instance.primaryFocus?.unfocus();
+              setState(() => _selectedIndex = index);
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.grid_view_outlined),
+                selectedIcon: Icon(Icons.grid_view_rounded, color: Color(0xFF2E5CFF)),
+                label: 'Vault',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.description_outlined),
+                selectedIcon: Icon(Icons.description_rounded, color: Color(0xFF2E5CFF)),
+                label: 'Docs',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.notifications_none_outlined),
+                selectedIcon: Icon(Icons.notifications_rounded, color: Color(0xFF2E5CFF)),
+                label: 'Alerts',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.tune_outlined),
+                selectedIcon: Icon(Icons.tune_rounded, color: Color(0xFF2E5CFF)),
+                label: 'Settings',
+              ),
+            ],
+          ),
         ),
       ),
     );

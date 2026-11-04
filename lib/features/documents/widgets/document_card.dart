@@ -31,13 +31,11 @@ class DocumentCard extends StatelessWidget {
       child: ExcludeSemantics(
         child: Card(
           clipBehavior: Clip.antiAlias,
-          child: Material(
-            color: scheme.surface,
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(18),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
