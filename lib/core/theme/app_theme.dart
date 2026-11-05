@@ -199,7 +199,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(44, 44),
+          minimumSize: const Size(48, 48),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.button)),
           textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
           elevation: 0,
@@ -208,13 +208,13 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(44, 44),
+          minimumSize: const Size(48, 48),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.button)),
           textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
+        style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         elevation: 4,

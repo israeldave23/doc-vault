@@ -102,18 +102,23 @@ Future<void> _pumpScreen(
   required _ImageStore imageStore,
   Document? existing,
 }) async {
+  final container = ProviderContainer(
+    overrides: [
+      documentsProvider.overrideWith(() => documents),
+      profilesProvider.overrideWith(_ProfilesNotifier.new),
+      settingsProvider.overrideWith(_SettingsNotifier.new),
+      secureImageStoreProvider.overrideWithValue(imageStore),
+      photoCaptureServiceProvider.overrideWithValue(
+        _PhotoCaptureService(imageStore),
+      ),
+      reminderServiceProvider.overrideWithValue(_ReminderService()),
+    ],
+  );
+  addTearDown(container.dispose);
+  container.read(documentsProvider);
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        documentsProvider.overrideWith(() => documents),
-        profilesProvider.overrideWith(_ProfilesNotifier.new),
-        settingsProvider.overrideWith(_SettingsNotifier.new),
-        secureImageStoreProvider.overrideWithValue(imageStore),
-        photoCaptureServiceProvider.overrideWithValue(
-          _PhotoCaptureService(imageStore),
-        ),
-        reminderServiceProvider.overrideWithValue(_ReminderService()),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: MaterialApp(
         home: AddEditDocumentScreen(existing: existing),
       ),
@@ -140,6 +145,7 @@ void main() {
     await tester.tap(find.text('Choose from gallery'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Photos (1/3)'), findsOneWidget);
+    await tester.ensureVisible(find.text('Save changes'));
 
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
@@ -166,6 +172,7 @@ void main() {
     await tester.tap(find.byTooltip('Remove photo'));
     await tester.pump();
     expect(imageStore.deleted, isEmpty);
+    await tester.ensureVisible(find.text('Save changes'));
 
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
@@ -210,6 +217,7 @@ void main() {
     );
 
     final save = find.text('Save changes');
+    await tester.ensureVisible(save);
     await tester.tap(save);
     await tester.tap(save, warnIfMissed: false);
     await tester.pump();
