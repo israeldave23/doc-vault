@@ -145,7 +145,8 @@ void main() {
     await tester.tap(find.text('Choose from gallery'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Photos (1/3)'), findsOneWidget);
-    await tester.ensureVisible(find.text('Save changes'));
+    await tester.scrollUntilVisible(find.text('Save changes'), 300,
+        scrollable: find.byType(Scrollable).first);
 
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
@@ -172,7 +173,8 @@ void main() {
     await tester.tap(find.byTooltip('Remove photo'));
     await tester.pump();
     expect(imageStore.deleted, isEmpty);
-    await tester.ensureVisible(find.text('Save changes'));
+    await tester.scrollUntilVisible(find.text('Save changes'), 300,
+        scrollable: find.byType(Scrollable).first);
 
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
@@ -217,7 +219,8 @@ void main() {
     );
 
     final save = find.text('Save changes');
-    await tester.ensureVisible(save);
+    await tester.scrollUntilVisible(save, 300,
+        scrollable: find.byType(Scrollable).first);
     await tester.tap(save);
     await tester.tap(save, warnIfMissed: false);
     await tester.pump();
