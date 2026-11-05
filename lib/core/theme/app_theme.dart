@@ -165,7 +165,6 @@ class AppTheme {
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.card),
-          side: BorderSide(color: AppColors.border),
         ),
         color: scheme.surface,
       ),
@@ -176,7 +175,7 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.button),
-          side: BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.button),
@@ -195,7 +194,6 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
       ),
       chipTheme: ChipThemeData(
-        side: BorderSide(color: AppColors.border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.control)),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
       ),
@@ -213,7 +211,6 @@ class AppTheme {
           minimumSize: const Size(44, 44),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.button)),
           textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-          side: BorderSide(color: AppColors.border),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -233,12 +230,6 @@ class AppTheme {
         indicatorColor: Color(0xFFF0F0F0),
         height: 56,
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        destinationSelectedShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        destinationShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: Colors.white,
@@ -286,7 +277,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
         checkColor: WidgetStateProperty.all(Colors.white),
       ),
-      scaffoldMessengerTheme: SnackBarThemeData(
+      snackBarTheme: SnackBarThemeData(
         backgroundColor: Color(0xFF323232),
         contentTextStyle: TextStyle(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

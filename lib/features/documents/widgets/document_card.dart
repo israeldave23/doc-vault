@@ -36,7 +36,7 @@ class DocumentCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             child: Padding(
               padding: const EdgeInsets.all(16),
-                child: Row(
+              child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _CategoryIcon(icon: category.icon, color: statusColor),
