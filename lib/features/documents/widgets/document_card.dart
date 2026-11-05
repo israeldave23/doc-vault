@@ -113,7 +113,6 @@ class DocumentCard extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }
