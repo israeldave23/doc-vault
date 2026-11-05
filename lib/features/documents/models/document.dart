@@ -69,34 +69,98 @@ class Document {
         'updatedAt': updatedAt.toIso8601String(),
       };
 
-  factory Document.fromMap(Map<String, dynamic> map) => Document(
-        id: map['id'] as String,
-        title: map['title'] as String,
-        category: map['category'] as String,
-        idNumber: map['idNumber'] as String?,
-        issueDate: map['issueDate'] == null
-            ? null
-            : DateTime.parse(map['issueDate'] as String),
-        expiryDate: DateTime.parse(map['expiryDate'] as String),
-        profileId: map['profileId'] as String,
-        imagePaths: (map['imagePaths'] as List?)?.cast<String>(),
-        notes: map['notes'] as String?,
-        reminderDaysBefore: (map['reminderDaysBefore'] as List?)?.cast<int>(),
-        remindersEnabled: map['remindersEnabled'] as bool? ?? true,
-        createdAt: DateTime.parse(map['createdAt'] as String),
-        updatedAt: DateTime.parse(map['updatedAt'] as String),
-      );
+  factory Document.fromMap(Map<String, dynamic> map) {
+    String requiredString(String key, int maxLength) {
+      final value = map[key];
+      if (value is! String || value.isEmpty || value.length > maxLength) {
+        throw FormatException('Invalid document $key');
+      }
+      return value;
+    }
+
+    String? optionalString(String key, int maxLength) {
+      final value = map[key];
+      if (value == null) return null;
+      if (value is! String || value.length > maxLength) {
+        throw FormatException('Invalid document $key');
+      }
+      return value;
+    }
+
+    DateTime date(String key, {bool optional = false}) {
+      final value = map[key];
+      if (optional && value == null) return DateTime.now();
+      if (value is! String || value.length > 64) {
+        throw FormatException('Invalid document $key');
+      }
+      try {
+        final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})(?:T|$)').firstMatch(value);
+        if (match == null) throw const FormatException('Invalid date');
+        final year = int.parse(match[1]!);
+        final month = int.parse(match[2]!);
+        final day = int.parse(match[3]!);
+        final calendarDate = DateTime.utc(year, month, day);
+        if (year < 1 || calendarDate.year != year ||
+            calendarDate.month != month || calendarDate.day != day) {
+          throw const FormatException('Invalid date');
+        }
+        final time = RegExp(r'T(\d{2}):(\d{2}):(\d{2})').firstMatch(value);
+        if (time != null && (int.parse(time[1]!) > 23 ||
+            int.parse(time[2]!) > 59 || int.parse(time[3]!) > 59)) {
+          throw const FormatException('Invalid time');
+        }
+        return DateTime.parse(value);
+      } on FormatException {
+        throw FormatException('Invalid document $key');
+      }
+    }
+
+    final rawImages = map['imagePaths'];
+    if (rawImages != null &&
+        (rawImages is! List || rawImages.length > 20 ||
+            rawImages.any((value) => value is! String || value.isEmpty || value.length > 255))) {
+      throw const FormatException('Invalid document imagePaths');
+    }
+    final rawReminders = map['reminderDaysBefore'];
+    if (rawReminders != null &&
+        (rawReminders is! List || rawReminders.length > 32 ||
+            rawReminders.any((value) => value is! int || value < 0 || value > 36500))) {
+      throw const FormatException('Invalid document reminderDaysBefore');
+    }
+    final enabled = map['remindersEnabled'];
+    if (enabled != null && enabled is! bool) {
+      throw const FormatException('Invalid document remindersEnabled');
+    }
+
+    return Document(
+      id: requiredString('id', 256),
+      title: requiredString('title', 500),
+      category: requiredString('category', 100),
+      idNumber: optionalString('idNumber', 500),
+      issueDate: map['issueDate'] == null ? null : date('issueDate'),
+      expiryDate: date('expiryDate'),
+      profileId: requiredString('profileId', 256),
+      imagePaths: rawImages == null ? null : List<String>.from(rawImages as List),
+      notes: optionalString('notes', 10000),
+      reminderDaysBefore: rawReminders == null ? null : List<int>.from(rawReminders as List),
+      remindersEnabled: enabled as bool? ?? true,
+      createdAt: date('createdAt', optional: true),
+      updatedAt: date('updatedAt', optional: true),
+    );
+  }
 
   Document copyWith({
     String? title,
     String? category,
     String? idNumber,
+    bool clearIdNumber = false,
     DateTime? issueDate,
     bool clearIssueDate = false,
     DateTime? expiryDate,
     String? profileId,
     List<String>? imagePaths,
     String? notes,
+    bool clearNotes = false,
     List<int>? reminderDaysBefore,
     bool? remindersEnabled,
   }) {
@@ -104,12 +168,12 @@ class Document {
       id: id,
       title: title ?? this.title,
       category: category ?? this.category,
-      idNumber: idNumber ?? this.idNumber,
+      idNumber: clearIdNumber ? null : (idNumber ?? this.idNumber),
       issueDate: clearIssueDate ? null : (issueDate ?? this.issueDate),
       expiryDate: expiryDate ?? this.expiryDate,
       profileId: profileId ?? this.profileId,
       imagePaths: imagePaths ?? this.imagePaths,
-      notes: notes ?? this.notes,
+      notes: clearNotes ? null : (notes ?? this.notes),
       reminderDaysBefore: reminderDaysBefore ?? this.reminderDaysBefore,
       remindersEnabled: remindersEnabled ?? this.remindersEnabled,
       createdAt: createdAt,

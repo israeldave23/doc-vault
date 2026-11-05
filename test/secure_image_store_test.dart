@@ -2,84 +2,77 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:doc_vault/data/local/secure_image_store.dart';
+import 'package:encrypt/encrypt.dart' as enc;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 class _FakeKeyStore implements ImageKeyStore {
-  _FakeKeyStore(this._key);
-  final Uint8List _key;
+  _FakeKeyStore(this.key);
+  final Uint8List key;
 
   @override
-  Future<Uint8List> loadOrCreateKey() async => _key;
+  Future<Uint8List> loadOrCreateKey() async => key;
 }
 
 void main() {
   late Directory tempDir;
   late SecureImageStore store;
-  final testKey = Uint8List.fromList(List<int>.generate(32, (i) => i + 1));
+  final key = Uint8List.fromList(List<int>.generate(32, (i) => i + 1));
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('doc_vault_image_test_');
+    tempDir = await Directory.systemTemp.createTemp('secure_image_store_');
     store = SecureImageStore(
-      keyStore: _FakeKeyStore(testKey),
+      keyStore: _FakeKeyStore(key),
       directoryResolver: () async => Directory(p.join(tempDir.path, 'vault')),
     );
   });
 
   tearDown(() async {
-    if (await tempDir.exists()) {
-      await tempDir.delete(recursive: true);
-    }
+    if (await tempDir.exists()) await tempDir.delete(recursive: true);
   });
 
-  test('encryptBytes and decryptBytes round-trip original image bytes', () async {
-    final original = Uint8List.fromList(
-      List<int>.generate(1024, (i) => (i * 37) & 0xFF),
-    );
-    final encrypted = await store.encryptBytes(original);
-
-    expect(encrypted, isNot(equals(original)));
-    expect(encrypted.length, greaterThan(original.length));
-
-    final decrypted = await store.decryptBytes(encrypted);
-    expect(decrypted, equals(original));
+  test('versioned GCM encrypt/decrypt round-trip and unique nonce', () async {
+    final plain = Uint8List.fromList(List<int>.generate(1024, (i) => i & 255));
+    final first = await store.encryptBytes(plain);
+    final second = await store.encryptBytes(plain);
+    expect(first.sublist(0, 5), <int>[68, 86, 73, 71, 1]);
+    expect(first, isNot(second));
+    expect(await store.decryptBytes(first), plain);
   });
 
-  test('encryptBytes uses a fresh random IV every time', () async {
-    final sample = Uint8List.fromList(List<int>.filled(64, 42));
-    final first = await store.encryptBytes(sample);
-    final second = await store.encryptBytes(sample);
-
-    expect(first, isNot(equals(second)));
-    expect(await store.decryptBytes(first), equals(sample));
-    expect(await store.decryptBytes(second), equals(sample));
+  test('GCM tampering fails authentication', () async {
+    final payload = await store.encryptBytes(Uint8List.fromList([1, 2, 3]));
+    payload[payload.length - 1] ^= 1;
+    await expectLater(store.decryptBytes(payload), throwsFormatException);
   });
 
-  test('saveFile encrypts to disk, deletes source, and load decrypts', () async {
-    final rawBytes = Uint8List.fromList(<int>[137, 80, 78, 71, 1, 2, 3, 4, 5]);
-    final sourceFile = File(p.join(tempDir.path, 'picked.jpg'));
-    await sourceFile.writeAsBytes(rawBytes);
-
-    final storedName = await store.saveFile(sourceFile);
-    expect(storedName.endsWith('.enc'), isTrue);
-    expect(await sourceFile.exists(), isFalse);
-
-    final vaultFile = File(p.join(tempDir.path, 'vault', storedName));
-    expect(await vaultFile.exists(), isTrue);
-    final diskBytes = await vaultFile.readAsBytes();
-    expect(diskBytes, isNot(equals(rawBytes)));
-
-    final loaded = await store.load(storedName);
-    expect(loaded, equals(rawBytes));
-
-    await store.delete(storedName);
-    expect(await vaultFile.exists(), isFalse);
+  test('legacy CBC payload remains readable', () async {
+    final plain = Uint8List.fromList(List<int>.generate(64, (i) => i));
+    final iv = Uint8List.fromList(List<int>.generate(16, (i) => i + 10));
+    final legacy = enc.Encrypter(enc.AES(enc.Key(key), mode: enc.AESMode.cbc));
+    final encrypted = legacy.encryptBytes(plain, iv: enc.IV(iv));
+    expect(await store.decryptBytes(Uint8List.fromList([...iv, ...encrypted.bytes])), plain);
   });
 
-  test('decryptBytes throws FormatException on truncated payload', () async {
-    expect(
-      () => store.decryptBytes(Uint8List.fromList(<int>[1, 2, 3])),
-      throwsFormatException,
-    );
+  test('save and load only use encrypted basename', () async {
+    final source = File(p.join(tempDir.path, 'source.jpg'));
+    final plain = Uint8List.fromList([1, 2, 3, 4]);
+    await source.writeAsBytes(plain);
+    final name = await store.saveFile(source);
+    expect(name.endsWith('.enc'), isTrue);
+    expect(await store.load(name), plain);
+    await expectLater(store.load('../outside.enc'), throwsArgumentError);
+    await expectLater(store.readEncrypted('..\\outside.enc'), throwsArgumentError);
+    await expectLater(store.readEncrypted(p.join(tempDir.path, 'outside.enc')), throwsArgumentError);
+  });
+
+  test('writeEncrypted rejects traversal and non-enc basename', () async {
+    await expectLater(store.writeEncrypted('../outside.enc', Uint8List(0)), throwsArgumentError);
+    await expectLater(store.writeEncrypted('photo.jpg', Uint8List(0)), throwsArgumentError);
+    await expectLater(store.writeEncrypted('sub\\photo.enc', Uint8List(0)), throwsArgumentError);
+  });
+
+  test('truncated payload fails', () async {
+    await expectLater(store.decryptBytes(Uint8List.fromList([1, 2, 3])), throwsFormatException);
   });
 }

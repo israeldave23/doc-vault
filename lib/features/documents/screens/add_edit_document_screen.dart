@@ -51,7 +51,9 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   /// Tracks photos encrypted during this form session so we can clean them up
   /// if the user exits without saving.
   final List<String> _sessionAddedPaths = <String>[];
+  final List<String> _originalImagePaths = <String>[];
   bool _didSave = false;
+  bool _isSaving = false;
   bool _isCapturingPhoto = false;
 
   bool get _isEditing => widget.existing != null;
@@ -74,12 +76,12 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
           ref.read(settingsProvider).defaultReminderDays,
     );
     _imagePaths = List<String>.of(doc?.imagePaths ?? const <String>[]);
+    _originalImagePaths.addAll(_imagePaths);
   }
 
   @override
   void dispose() {
     if (!_didSave && _sessionAddedPaths.isNotEmpty) {
-      // Discard encrypted files created during an aborted add/edit session.
       _imageStore.deleteAll(List<String>.of(_sessionAddedPaths));
     }
     _titleController.dispose();
@@ -153,7 +155,11 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
             source: source,
             toolbarColor: Theme.of(context).colorScheme.primary,
           );
-      if (result == null || !mounted) return;
+      if (result == null) return;
+      if (!mounted) {
+        await _imageStore.delete(result.storedPath);
+        return;
+      }
       setState(() {
         _imagePaths.add(result.storedPath);
         _sessionAddedPaths.add(result.storedPath);
@@ -207,6 +213,24 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   }
 
   Future<void> _save() async {
+    if (_isSaving || _isCapturingPhoto || _didSave) return;
+    setState(() => _isSaving = true);
+    try {
+      await _saveDocument();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_didSave
+              ? 'Document saved, but reminder setup failed.'
+              : 'Could not save document. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _saveDocument() async {
     if (!_formKey.currentState!.validate()) return;
     if (_expiryDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -257,8 +281,20 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
             remindersEnabled: _remindersEnabled,
           );
 
-    _didSave = true;
     await ref.read(documentsProvider.notifier).upsert(document);
+    _didSave = true;
+    if (mounted && _originalImagePaths.isNotEmpty) {
+      final removedPaths = _originalImagePaths.where(
+        (path) => !_imagePaths.contains(path),
+      ).toList(growable: false);
+      if (removedPaths.isNotEmpty) {
+        try {
+          await _imageStore.deleteAll(removedPaths);
+        } catch (_) {
+          // Cleanup failure should not block success. Ciphertext persists, plaintext is gone.
+        }
+      }
+    }
     if (!mounted) return;
 
     if (_remindersEnabled) {
@@ -477,7 +513,7 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _save,
+                  onPressed: _isSaving ? null : _save,
                   icon: const Icon(Icons.check),
                   label: Text(_isEditing ? 'Save changes' : 'Save document'),
                 ),

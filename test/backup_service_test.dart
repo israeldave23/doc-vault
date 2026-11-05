@@ -242,5 +242,64 @@ void main() {
       expect(profilesBox.containsKey(Profile.selfId), isTrue);
       expect(profilesBox.containsKey('solo'), isTrue);
     });
+
+    test('rejects backup where document references missing profile', () async {
+      // Create a document with a nonexistent profileId, export it.
+      await documentsBox.clear();
+      await documentsBox.put(
+        'orphan',
+        Document(
+          id: 'orphan',
+          title: 'Orphan',
+          category: 'passport',
+          expiryDate: DateTime(2030, 1, 1),
+          profileId: 'nonexistent',
+        ),
+      );
+      final archive = await service.exportArchive(passphrase: 'test');
+
+      await documentsBox.clear();
+      await profilesBox.clear();
+      await expectLater(
+        service.importArchive(bytes: archive, passphrase: 'test'),
+        throwsA(
+          isA<BackupException>().having(
+            (e) => e.message,
+            'message',
+            contains('Invalid document or profile relationships'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects backup with missing image referenced by document', () async {
+      await documentsBox.clear();
+      await documentsBox.put(
+        'doc',
+        Document(
+          id: 'doc',
+          title: 'Doc',
+          category: 'passport',
+          expiryDate: DateTime(2030, 1, 1),
+          profileId: Profile.selfId,
+          imagePaths: const ['missing.enc'],
+        ),
+      );
+      final archive = await service.exportArchive(passphrase: 'test');
+
+      await documentsBox.clear();
+      await images.clearAll();
+      await expectLater(
+        service.importArchive(bytes: archive, passphrase: 'test'),
+        throwsA(
+          isA<BackupException>().having(
+            (e) => e.message,
+            'message',
+            contains('Document references missing image'),
+          ),
+        ),
+      );
+    });
+
   });
 }

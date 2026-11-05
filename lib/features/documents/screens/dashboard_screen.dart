@@ -85,7 +85,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         .where((document) => document.status == ExpiryStatus.critical)
         .length;
     final validCount = profileDocuments
-        .where((document) => document.status == ExpiryStatus.ok)
+        .where((document) =>
+            document.status == ExpiryStatus.ok ||
+            document.status == ExpiryStatus.warning)
         .length;
 
     return Scaffold(
@@ -217,12 +219,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: expiredCount + expiringCount > 0
                       ? _PriorityAlerts(
                           key: const ValueKey('priority'),
-                          documents: profileDocuments
-                              .where((document) =>
-                                  document.status == ExpiryStatus.expired ||
-                                  document.status == ExpiryStatus.critical)
-                              .take(3)
-                              .toList(growable: false),
+                           documents: (profileDocuments
+                                 .where((document) =>
+                                     document.status == ExpiryStatus.expired ||
+                                     document.status == ExpiryStatus.critical)
+                                 .toList()
+                               ..sort((a, b) => a.expiryDate.compareTo(b.expiryDate)))
+                               .take(3)
+                               .toList(growable: false),
                           onDocumentTap: (id) => Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (_) =>

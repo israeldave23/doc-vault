@@ -99,17 +99,59 @@ class BackupService {
   }) async {
     final decoded = _decodeAll(bytes, passphrase);
 
-    final docs = (decoded.json['documents'] as List? ?? const [])
-        .map((e) => Document.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList();
-    final profiles = (decoded.json['profiles'] as List? ?? const [])
-        .map((e) => Profile.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList();
+    final rawDocs = decoded.json['documents'] as List? ?? const [];
+    if (rawDocs.length > 10000) {
+      throw BackupException('Too many documents in backup.');
+    }
+    final docs = <Document>[];
+    for (final e in rawDocs) {
+      try {
+        docs.add(Document.fromMap(Map<String, dynamic>.from(e as Map)));
+      } on FormatException catch (ex) {
+        throw BackupException('Invalid document in backup: ${ex.message}');
+      }
+    }
+
+    final rawProfiles = decoded.json['profiles'] as List? ?? const [];
+    if (rawProfiles.length > 1000) {
+      throw BackupException('Too many profiles in backup.');
+    }
+    final profiles = <Profile>[];
+    for (final e in rawProfiles) {
+      try {
+        profiles.add(Profile.fromMap(Map<String, dynamic>.from(e as Map)));
+      } on FormatException catch (ex) {
+        throw BackupException('Invalid profile in backup: ${ex.message}');
+      }
+    }
+
     final settings = AppSettings.fromMap(
       Map<String, dynamic>.from(decoded.json['settings'] as Map? ?? const {}),
     );
 
-    // Everything parsed — commit the restore.
+    if (decoded.images.length > 10000) {
+      throw BackupException('Too many images in backup.');
+    }
+    final profileIds = profiles.map((profile) => profile.id).toSet();
+    if (profileIds.length != profiles.length ||
+        docs.map((doc) => doc.id).toSet().length != docs.length ||
+        docs.any((doc) =>
+            doc.profileId != Profile.selfId && !profileIds.contains(doc.profileId))) {
+      throw BackupException('Invalid document or profile relationships in backup.');
+    }
+    final imageNames = <String>{};
+    for (final entry in decoded.images) {
+      if (entry.key.isEmpty ||
+          entry.key.length > 255 ||
+          !_isSafeImageName(entry.key) ||
+          !imageNames.add(entry.key)) {
+        throw BackupException('Invalid image filename in backup.');
+      }
+    }
+    if (docs.any((doc) => doc.imagePaths.any((name) => !imageNames.contains(name)))) {
+      throw BackupException('Document references missing image in backup.');
+    }
+
     await images.clearAll();
     for (final entry in decoded.images) {
       await images.writeEncrypted(entry.key, entry.value);
@@ -121,7 +163,6 @@ class BackupService {
     await profilesBox.clear();
     await profilesBox.putAll({for (final p in profiles) p.id: p});
     if (!profilesBox.containsKey(Profile.selfId)) {
-      // The app assumes a default person always exists.
       await profilesBox.put(
         Profile.selfId,
         const Profile(id: Profile.selfId, name: 'Me', avatarEmoji: '🙂'),
@@ -157,8 +198,8 @@ class BackupService {
     final payloadOffset = _headerLength;
     final length = _readInt(bytes, payloadOffset - 4);
     final payloadEnd = payloadOffset + length;
-    if (bytes.length < payloadEnd) {
-      throw BackupException('The backup file is truncated.');
+    if (length == 0 || payloadEnd != bytes.length) {
+      throw BackupException('The backup file is truncated or damaged.');
     }
 
     final Uint8List decrypted;
@@ -202,11 +243,20 @@ class BackupService {
       }
       final nameLength = _readInt(decrypted, cursor);
       cursor += 4;
+      if (nameLength > decrypted.length - cursor) {
+        throw BackupException('The backup file is damaged.');
+      }
       final name =
           utf8.decode(decrypted.sublist(cursor, cursor + nameLength));
       cursor += nameLength;
+      if (cursor + 4 > decrypted.length) {
+        throw BackupException('The backup file is damaged.');
+      }
       final dataLength = _readInt(decrypted, cursor);
       cursor += 4;
+      if (dataLength > decrypted.length - cursor) {
+        throw BackupException('The backup file is damaged.');
+      }
       imageEntries.add(MapEntry(
         name,
         Uint8List.fromList(decrypted.sublist(cursor, cursor + dataLength)),
@@ -239,6 +289,13 @@ class BackupService {
       _writeChunk(builder, await images.readEncrypted(name));
     }
     return builder.toBytes();
+  }
+
+  static bool _isSafeImageName(String name) {
+    return !name.contains('/') &&
+        !name.contains('\\') &&
+        !name.contains('..') &&
+        !name.startsWith('.');
   }
 
   static void _writeChunk(BytesBuilder builder, List<int> bytes) {
