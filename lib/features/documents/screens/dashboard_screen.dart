@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/premium_components.dart'
+    show
+        PremiumHeader,
+        PremiumSearchBar,
+        DocumentOverviewCard,
+        ExpiryAlertCard,
+        VaultProfileSelector,
+        VaultStatusFilters;
 import '../../../core/utils/expiry_status.dart';
 import '../../ads/widgets/ad_banner.dart';
-import '../../profiles/models/profile.dart';
 import '../../profiles/providers/profile_providers.dart';
 import '../../profiles/screens/profiles_screen.dart';
 import '../../settings/providers/settings_provider.dart';
@@ -72,6 +79,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final settings = ref.watch(settingsProvider);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    
     final profileDocuments = allDocuments
         .where(
           (document) =>
@@ -90,340 +98,252 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             document.status == ExpiryStatus.warning)
         .length;
 
+    final selectedProfileObj = selectedProfile == null
+        ? null
+        : profiles.where((p) => p.id == selectedProfile).firstOrNull;
+    final profileDisplayName = selectedProfileObj?.name ?? 'Everyone';
+
     return Scaffold(
-      body: CustomScrollView(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        slivers: [
-           SliverAppBar(
-             backgroundColor: Colors.transparent,
-             elevation: 0,
-             scrolledUnderElevation: 0,
-             pinned: false,
-             titleSpacing: 0,
-             title: Padding(
-               padding: const EdgeInsets.only(left: AppSpacing.md),
-               child: Row(
-                 children: [
-                   Container(
-                     width: 44,
-                     height: 44,
-                     decoration: BoxDecoration(
-                       color: scheme.primary.withValues(alpha: 0.08),
-                       borderRadius: BorderRadius.circular(AppRadii.control),
-                     ),
-                     child: Icon(
-                       Icons.shield_outlined,
-                       color: scheme.primary,
-                       size: 22,
-                     ),
-                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+      body: Stack(
+        children: [
+          CustomScrollView(
+            keyboardDismissBehavior:
+                ScrollViewKeyboardDismissBehavior.onDrag,
+            slivers: [
+              SliverAppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                pinned: true,
+                expandedHeight: 200,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: PremiumHeader(
+                    greeting: _greeting,
+                    profileName: profileDisplayName,
+                    onNotificationTap: () {},
+                    onSettingsTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SettingsScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                  AppSpacing.lg,
+                  0,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: PremiumSearchBar(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      ref.read(searchQueryProvider.notifier).update(value);
+                      setState(() {});
+                    },
+                    onClear: _clearSearch,
+                    onFilterTap: () {},
+                  ),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    0,
+                  ),
+                  child: VaultProfileSelector(
+                    profiles: profiles,
+                    selectedProfile: selectedProfile,
+                  ),
+                ),
+              ),
+              if (allDocuments.isNotEmpty) ...[
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  sliver: SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.md),
+                      child: DocumentOverviewCard(
+                        total: profileDocuments.length,
+                        valid: validCount,
+                        expiring: expiringCount,
+                        expired: expiredCount,
+                        onStatusTap: (status) {
+                          _clearSearch();
+                          ref
+                              .read(statusFilterProvider.notifier)
+                              .select(status);
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: AnimatedSwitcher(
+                      duration: MediaQuery.disableAnimationsOf(context)
+                          ? Duration.zero
+                          : const Duration(milliseconds: 200),
+                      child: expiredCount + expiringCount > 0
+                          ? _PriorityAlerts(
+                              key: const ValueKey('priority'),
+                              documents: (profileDocuments
+                                    .where((document) =>
+                                        document.status ==
+                                            ExpiryStatus.expired ||
+                                        document.status ==
+                                            ExpiryStatus.critical)
+                                    .toList()
+                                  ..sort((a, b) =>
+                                      a.expiryDate.compareTo(b.expiryDate)))
+                                  .take(3)
+                                  .toList(growable: false),
+                              onDocumentTap: (id) =>
+                                  Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) =>
+                                      DocumentDetailScreen(documentId: id),
+                                ),
+                              ),
+                            )
+                          : const _AllCaughtUpCard(
+                              key: ValueKey('caught-up'),
+                            ),
+                    ),
+                  ),
+                ),
+              ],
+              if (allDocuments.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.sm,
+                      AppSpacing.lg,
+                      0,
+                    ),
+                    child: Wrap(
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
                       children: [
-                        Text(
-                          _greeting,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        OutlinedButton.icon(
+                          onPressed: _viewAll,
+                          icon: const Icon(Icons.grid_3x3_outlined),
+                          label: const Text('Browse all'),
                         ),
-                        Text(
-                          'Document Vault',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontSize: 22,
-                            height: 1.25,
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const ProfilesScreen(),
+                            ),
                           ),
+                          icon: const Icon(Icons.people_outline),
+                          label: const Text('Manage profiles'),
                         ),
                       ],
                     ),
                   ),
-                   IconButton(
-                     tooltip: 'Settings',
-                     icon: const Icon(Icons.tune_outlined),
-                     onPressed: () => Navigator.of(context).push(
-                       MaterialPageRoute<void>(
-                         builder: (_) => const SettingsScreen(),
-                       ),
-                     ),
-                   ),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              0,
-            ),
-            sliver: SliverToBoxAdapter(
-              child: TextField(
-                controller: _searchController,
-                textInputAction: TextInputAction.search,
-                onSubmitted: (_) => FocusScope.of(context).unfocus(),
-                onChanged: (value) {
-                  ref.read(searchQueryProvider.notifier).update(value);
-                  setState(() {});
-                },
-                decoration: InputDecoration(
-                  hintText: 'Search your documents...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          icon: const Icon(Icons.close),
-                          onPressed: _clearSearch,
-                        ),
+                ),
+              const SliverToBoxAdapter(
+                  child: SizedBox(height: AppSpacing.sm)),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.xs,
+                  AppSpacing.lg,
+                  0,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: _SectionHeader(
+                    title: 'Your Documents',
+                    action: TextButton(
+                      onPressed: _viewAll,
+                      child: const Text('View all'),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: VaultProfileSelector(
-                profiles: profiles,
-                selectedProfile: selectedProfile,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: AppSpacing.lg,
+                    top: AppSpacing.xs,
+                    bottom: AppSpacing.md,
+                  ),
+                  child: VaultStatusFilters(
+                    selectedStatus: selectedStatus,
+                    documents: allDocuments,
+                    selectedProfile: selectedProfile,
+                  ),
+                ),
               ),
-            ),
-          ),
-          if (allDocuments.isNotEmpty) ...[
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              sliver: SliverToBoxAdapter(
-               child: _AnimatedHealthOverview(
-                   total: profileDocuments.length,
-                   valid: validCount,
-                   expired: expiredCount,
-                   expiring: expiringCount,
-                   onTap: (status) {
-                     _clearSearch();
-                     ref.read(statusFilterProvider.notifier).select(status);
-                   },
-                 ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
-              sliver: SliverToBoxAdapter(
-                child: AnimatedSwitcher(
-                  duration: MediaQuery.disableAnimationsOf(context)
-                      ? Duration.zero
-                      : const Duration(milliseconds: 200),
-                  child: expiredCount + expiringCount > 0
-                      ? _PriorityAlerts(
-                          key: const ValueKey('priority'),
-                           documents: (profileDocuments
-                                 .where((document) =>
-                                     document.status == ExpiryStatus.expired ||
-                                     document.status == ExpiryStatus.critical)
-                                 .toList()
-                               ..sort((a, b) => a.expiryDate.compareTo(b.expiryDate)))
-                               .take(3)
-                               .toList(growable: false),
-                          onDocumentTap: (id) => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  DocumentDetailScreen(documentId: id),
+              if (documents.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _EmptyState(
+                    allDocuments: allDocuments,
+                    selectedProfile: selectedProfile,
+                    selectedStatus: selectedStatus,
+                    hasSearch: _searchController.text.trim().isNotEmpty,
+                    onClearSearch: _clearSearch,
+                    onClearProfile: () => ref
+                        .read(selectedProfileIdProvider.notifier)
+                        .select(null),
+                    onClearStatus: () => ref
+                        .read(statusFilterProvider.notifier)
+                        .select(null),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  sliver: SliverList.separated(
+                    itemCount: documents.length,
+                    itemBuilder: (context, index) {
+                      final document = documents[index];
+                      return DocumentCard(
+                        document: document,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => DocumentDetailScreen(
+                              documentId: document.id,
                             ),
                           ),
-                        )
-                      : const _AllCaughtUpCard(key: ValueKey('caught-up')),
-                ),
-              ),
-            ),
-          ],
-          if (allDocuments.isNotEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
-              child: Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                   OutlinedButton.icon(
-                     onPressed: _viewAll,
-                     icon: const Icon(Icons.grid_3x3_outlined),
-                     label: const Text('Browse all'),
-                   ),
-                   OutlinedButton.icon(
-                     onPressed: () => Navigator.of(context).push(
-                       MaterialPageRoute<void>(
-                         builder: (_) => const ProfilesScreen(),
-                       ),
-                     ),
-                     icon: const Icon(Icons.people_outline),
-                     label: const Text('Manage profiles'),
-                   ),
-                ],
-              ),
-            ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, 0),
-            sliver: SliverToBoxAdapter(
-              child: _SectionHeader(
-                title: 'Your Documents',
-                action: TextButton(
-                  onPressed: _viewAll,
-                  child: const Text('View all'),
-                ),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(
-                  left: AppSpacing.lg,
-                  top: AppSpacing.xs,
-                  bottom: AppSpacing.md),
-              child: VaultStatusFilters(
-                selectedStatus: selectedStatus,
-                documents: allDocuments,
-                selectedProfile: selectedProfile,
-              ),
-            ),
-          ),
-          if (documents.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: _EmptyState(
-                allDocuments: allDocuments,
-                selectedProfile: selectedProfile,
-                selectedStatus: selectedStatus,
-                hasSearch: _searchController.text.trim().isNotEmpty,
-                onClearSearch: _clearSearch,
-                onClearProfile: () => ref
-                    .read(selectedProfileIdProvider.notifier)
-                    .select(null),
-                onClearStatus: () => ref
-                    .read(statusFilterProvider.notifier)
-                    .select(null),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              sliver: SliverList.separated(
-                itemCount: documents.length,
-                itemBuilder: (context, index) {
-                  final document = documents[index];
-                  return DocumentCard(
-                    document: document,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => DocumentDetailScreen(
-                          documentId: document.id,
                         ),
-                      ),
-                    ),
-                  );
-                },
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-              ),
-            ),
-          const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                      );
+                    },
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.md),
+                  ),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const AddEditDocumentScreen()),
+          MaterialPageRoute<void>(
+            builder: (_) => const AddEditDocumentScreen(),
+          ),
         ),
-        tooltip: 'Add document',
-        icon: const Icon(Icons.add),
-        label: const Text('Add document'),
+        backgroundColor: scheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        child: const Icon(Icons.add),
       ),
       bottomNavigationBar: settings.isPro ? null : const AdBanner(),
-    );
-  }
-}
-
-class VaultProfileSelector extends ConsumerWidget {
-  const VaultProfileSelector({
-    super.key,
-    required this.profiles,
-    required this.selectedProfile,
-  });
-
-  final List<Profile> profiles;
-  final String? selectedProfile;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return SizedBox(
-      height: 32 + MediaQuery.textScalerOf(context).scale(20),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          _ProfileChip(
-            label: 'Everyone',
-            selected: selectedProfile == null,
-            onTap: () => ref
-                .read(selectedProfileIdProvider.notifier)
-                .select(null),
-          ),
-          for (final profile in profiles)
-            _ProfileChip(
-              label: '${profile.avatarEmoji ?? ''} ${profile.name}'.trim(),
-              selected: selectedProfile == profile.id,
-              onTap: () => ref
-                  .read(selectedProfileIdProvider.notifier)
-                  .select(profile.id),
-            ),
-          _ProfileChip(
-            label: 'Manage',
-            icon: Icons.manage_accounts_outlined,
-            selected: false,
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const ProfilesScreen(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileChip extends StatelessWidget {
-  const _ProfileChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.icon,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        avatar: icon == null ? null : Icon(icon, size: 18),
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
-        showCheckmark: false,
-        selectedColor: scheme.primaryContainer,
-        labelStyle: TextStyle(
-          color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
-        ),
-      ),
     );
   }
 }
@@ -566,151 +486,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _HealthTile extends StatelessWidget {
-  const _HealthTile({required this.label, required this.count, required this.color, this.onTap});
-  final String label;
-  final int count;
-  final Color color;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final child = Column(mainAxisSize: MainAxisSize.min, children: [
-      Text('$count', style: theme.textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w800)),
-      const SizedBox(height: AppSpacing.xs),
-      Text(label, textAlign: TextAlign.center, style: theme.textTheme.labelMedium),
-    ]);
-    if (onTap == null) return child;
-    return Semantics(button: true, onTap: onTap, label: '$count $label', child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadii.control), child: child));
-  }
-}
-
-class _PriorityAlerts extends StatelessWidget {
-  const _PriorityAlerts({super.key, required this.documents, required this.onDocumentTap});
-  final List<Document> documents;
-  final ValueChanged<String> onDocumentTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Card(
-      color: scheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer), const SizedBox(width: AppSpacing.sm), Text('Needs your attention', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: scheme.onErrorContainer))]),
-          const SizedBox(height: AppSpacing.sm),
-          for (var i = 0; i < documents.length; i++) ...[
-            if (i > 0) const Divider(height: AppSpacing.md),
-            _PriorityRow(document: documents[i], onTap: () => onDocumentTap(documents[i].id)),
-          ],
-        ]),
-      ),
-    );
-  }
-}
-
-class _PriorityRow extends StatelessWidget {
-  const _PriorityRow({required this.document, required this.onTap});
-  final Document document;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = document.status.colorFor(context);
-    return Semantics(
-      button: true,
-      onTap: onTap,
-      label: '${document.title}, ${document.status.label}, ${daysRemainingLabel(document.daysRemaining)}',
-      child: ExcludeSemantics(
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadii.control),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-            child: Row(children: [
-              Icon(document.status == ExpiryStatus.expired ? Icons.error_outline : Icons.schedule, color: color, size: 20),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(document.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                Text(daysRemainingLabel(document.daysRemaining), style: theme.textTheme.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w600)),
-              ])),
-              Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.outline),
-            ]),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class VaultStatusFilters extends ConsumerWidget {
-  const VaultStatusFilters({
-    super.key,
-    required this.selectedStatus,
-    required this.documents,
-    required this.selectedProfile,
-  });
-
-  final ExpiryStatus? selectedStatus;
-  final List<Document> documents;
-  final String? selectedProfile;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final filtered = documents.where(
-      (document) =>
-          selectedProfile == null || document.profileId == selectedProfile,
-    );
-    final counts = <ExpiryStatus, int>{
-      for (final status in ExpiryStatus.values)
-        status: filtered.where((document) => document.status == status).length,
-    };
-    final options = <(String, ExpiryStatus?, int, Color)>[
-      ('All', null, filtered.length, Theme.of(context).colorScheme.primary),
-      ('Expired', ExpiryStatus.expired, counts[ExpiryStatus.expired]!,
-          ExpiryStatus.expired.colorFor(context)),
-      ('Expiring soon', ExpiryStatus.critical, counts[ExpiryStatus.critical]!,
-          ExpiryStatus.critical.colorFor(context)),
-      ('Renew soon', ExpiryStatus.warning, counts[ExpiryStatus.warning]!,
-          ExpiryStatus.warning.colorFor(context)),
-      ('Valid', ExpiryStatus.ok, counts[ExpiryStatus.ok]!,
-          ExpiryStatus.ok.colorFor(context)),
-    ];
-    return SizedBox(
-      height: 32 + MediaQuery.textScalerOf(context).scale(20),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          for (final option in options)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(option.$3 == 0
-                    ? option.$1
-                    : '${option.$1} (${option.$3})'),
-                selected: selectedStatus == option.$2,
-                showCheckmark: false,
-                selectedColor: option.$4.withValues(alpha: 0.14),
-                labelStyle: TextStyle(
-                  color: selectedStatus == option.$2
-                      ? option.$4
-                      : Theme.of(context).colorScheme.onSurface,
-                ),
-                onSelected: (_) => ref
-                    .read(statusFilterProvider.notifier)
-                    .select(option.$2),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _EmptyState extends StatelessWidget {
   const _EmptyState({
     required this.allDocuments,
@@ -803,6 +578,58 @@ class _EmptyState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PriorityAlerts extends StatelessWidget {
+  const _PriorityAlerts({
+    super.key,
+    required this.documents,
+    required this.onDocumentTap,
+  });
+
+  final List<Document> documents;
+  final ValueChanged<String> onDocumentTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: AppColors.danger, size: 24),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Needs your attention',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.danger,
+                ),
+              ),
+            ],
+          ),
+        ),
+        for (final doc in documents)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.md),
+            child: ExpiryAlertCard(
+              title: doc.title,
+              daysLabel: daysRemainingLabel(doc.daysRemaining),
+              status: doc.status,
+              icon: doc.status == ExpiryStatus.expired
+                  ? Icons.error_outline
+                  : Icons.schedule_outlined,
+              onTap: () => onDocumentTap(doc.id),
+            ),
+          ),
+      ],
     );
   }
 }

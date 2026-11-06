@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/premium_components.dart'
+    show
+        PremiumSearchBar,
+        VaultProfileSelector,
+        VaultStatusFilters;
 import '../../../core/utils/expiry_status.dart';
 import '../providers/document_providers.dart';
 import '../../profiles/providers/profile_providers.dart';
-import 'dashboard_screen.dart';
 import '../widgets/document_card.dart';
 import 'document_detail_screen.dart';
 
@@ -39,7 +44,6 @@ class _DocumentCollectionScreenState
 
   @override
   Widget build(BuildContext context) {
-    final query = ref.watch(searchQueryProvider);
     ref.listen(searchQueryProvider, (_, value) {
       if (_searchController.text != value) _searchController.text = value;
     });
@@ -50,44 +54,46 @@ class _DocumentCollectionScreenState
             document.status == ExpiryStatus.critical).toList(growable: false)
         : visible;
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.alertsOnly ? 'Alerts' : 'All Documents'),
+        backgroundColor: scheme.surface,
       ),
       body: CustomScrollView(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        keyboardDismissBehavior:
+            ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.md,
+              AppSpacing.lg,
+              0,
+            ),
             sliver: SliverToBoxAdapter(
-              child: TextField(
+              child: PremiumSearchBar(
                 controller: _searchController,
                 onChanged: (value) => ref
                     .read(searchQueryProvider.notifier)
                     .update(value),
-                decoration: InputDecoration(
-                  hintText: widget.alertsOnly
-                      ? 'Search alerts...'
-                      : 'Search your documents...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: query.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            ref.read(searchQueryProvider.notifier).update('');
-                          },
-                        ),
-                ),
+                onClear: () {
+                  _searchController.clear();
+                  ref.read(searchQueryProvider.notifier).update('');
+                },
+                onFilterTap: () {},
               ),
             ),
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.md,
+                AppSpacing.lg,
+                0,
+              ),
               child: VaultProfileSelector(
                 profiles: ref.watch(profilesProvider),
                 selectedProfile: ref.watch(selectedProfileIdProvider),
@@ -96,7 +102,12 @@ class _DocumentCollectionScreenState
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.lg,
+                AppSpacing.md,
+              ),
               child: VaultStatusFilters(
                 selectedStatus: ref.watch(statusFilterProvider),
                 documents: ref.watch(documentsProvider),
@@ -107,44 +118,19 @@ class _DocumentCollectionScreenState
           if (documents.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        widget.alertsOnly
-                            ? Icons.notifications_none_outlined
-                            : Icons.folder_open_outlined,
-                        size: 56,
-                        color: theme.colorScheme.outline,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        widget.alertsOnly
-                            ? 'No active alerts'
-                            : 'No documents found',
-                        style: theme.textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        widget.alertsOnly
-                            ? 'No expired or expiring-soon documents match your filters.'
-                            : 'Try a different search.',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              child: _EmptyState(
+                topIcon: widget.alertsOnly
+                    ? Icons.notifications_none_outlined
+                    : Icons.folder_open_outlined,
+                title: widget.alertsOnly ? 'No active alerts' : 'No documents found',
+                message: widget.alertsOnly
+                    ? 'No expired or expiring-soon documents match your filters.'
+                    : 'Try a different search.',
               ),
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               sliver: SliverList.separated(
                 itemCount: documents.length,
                 itemBuilder: (context, index) {
@@ -160,11 +146,49 @@ class _DocumentCollectionScreenState
                     ),
                   );
                 },
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
               ),
             ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.topIcon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData topIcon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(topIcon, size: 64, color: theme.colorScheme.outline),
+            const SizedBox(height: 16),
+            Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
