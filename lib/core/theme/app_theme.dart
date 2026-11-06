@@ -139,6 +139,19 @@ class AppTheme {
           : const Color(0xFF410002),
       surface: isDark ? AppColors.darkSurface : AppColors.surface,
       onSurface: isDark ? AppColors.darkPrimaryText : AppColors.primaryText,
+      surfaceTint: isDark ? AppColors.darkPrimary : AppColors.seed,
+      surfaceContainerLowest: isDark
+          ? AppColors.darkBackground
+          : AppColors.background,
+      surfaceContainerLow: isDark
+          ? AppColors.darkSurface
+          : AppColors.primaryContainer,
+      surfaceContainer: isDark
+          ? AppColors.darkSurface
+          : AppColors.primaryContainer,
+      surfaceContainerHigh: isDark
+          ? const Color(0xFF1E254F)
+          : const Color(0xFFE0E1F5),
       surfaceContainerHighest: isDark
           ? const Color(0xFF242A56)
           : const Color(0xFFEBEBEB),
@@ -160,7 +173,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: AppColors.background,
+      scaffoldBackgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.background,
       visualDensity: VisualDensity.standard,
       textTheme: Typography.material2021(platform: TargetPlatform.android)
           .black
@@ -232,11 +246,11 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.button),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: scheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.button),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: scheme.outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.button),
@@ -290,51 +304,55 @@ class AppTheme {
         minTileHeight: 56,
         contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
       ),
-      navigationBarTheme: const NavigationBarThemeData(
+      navigationBarTheme: NavigationBarThemeData(
         elevation: 0,
-        backgroundColor: Colors.white,
-        indicatorColor: Color(0xFFF0F0F0),
+        backgroundColor: scheme.surface,
+        indicatorColor: scheme.surfaceContainerHighest,
         height: 56,
         labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Colors.white,
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: scheme.surface,
         showDragHandle: true,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppRadii.sheet),
           ),
         ),
       ),
-      dividerTheme: const DividerThemeData(
-        color: AppColors.borderLight,
+      dividerTheme: DividerThemeData(
+        color: scheme.outlineVariant,
         thickness: 1,
         space: 1,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surface,
         elevation: 24,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.sheet)),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
-          color: Color(0xFF1A1A1A),
+          color: scheme.onSurface,
           fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
-        iconTheme: IconThemeData(color: Color(0xFF1A1A1A)),
+        iconTheme: IconThemeData(color: scheme.onSurface),
       ),
       sliderTheme: SliderThemeData(
         activeTrackColor: scheme.primary,
-        inactiveTrackColor: const Color(0xFFF5F5F7),
+        inactiveTrackColor: isDark
+            ? AppColors.darkBorder
+            : const Color(0xFFF5F5F7),
         thumbColor: scheme.primary,
-        overlayColor: const Color(0x20FF5722),
+        overlayColor: isDark
+            ? scheme.primary.withValues(alpha: 0.15)
+            : const Color(0x20FF5722),
         valueIndicatorColor: scheme.primary,
         trackHeight: 4,
         thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
@@ -345,14 +363,18 @@ class AppTheme {
         checkColor: WidgetStateProperty.all(Colors.white),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: const Color(0xFF323232),
-        contentTextStyle: const TextStyle(color: Colors.white),
+        backgroundColor: isDark
+            ? AppColors.darkSurface
+            : const Color(0xFF323232),
+        contentTextStyle: TextStyle(color: scheme.onSurface),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         behavior: SnackBarBehavior.floating,
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: scheme.primary,
-        linearTrackColor: const Color(0xFFF5F5F7),
+        linearTrackColor: isDark
+            ? AppColors.darkBorder
+            : const Color(0xFFF5F5F7),
       ),
     );
   }

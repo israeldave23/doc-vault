@@ -354,10 +354,12 @@ class ExpiryAlertCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isExpired = status == ExpiryStatus.expired;
-    final bgColor = isExpired
-        ? AppColors.danger.withValues(alpha: 0.08)
-        : AppColors.warning.withValues(alpha: 0.08);
-    final statusColor = isExpired ? AppColors.danger : AppColors.warning;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final statusColor = isDark
+        ? (isExpired ? AppColors.statusExpiredDark : AppColors.statusCriticalDark)
+        : (isExpired ? AppColors.danger : AppColors.warning);
+    final bgColor = statusColor.withValues(alpha: isDark ? 0.12 : 0.08);
 
     return GestureDetector(
       onTap: onTap,
@@ -366,7 +368,7 @@ class ExpiryAlertCard extends StatelessWidget {
           color: bgColor,
           borderRadius: BorderRadius.circular(AppRadii.card),
           border: Border.all(
-            color: statusColor.withValues(alpha: 0.2),
+            color: statusColor.withValues(alpha: isDark ? 0.35 : 0.2),
           ),
         ),
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -377,7 +379,7 @@ class ExpiryAlertCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.15),
+                color: statusColor.withValues(alpha: isDark ? 0.2 : 0.15),
                 borderRadius: BorderRadius.circular(AppRadii.control),
               ),
               child: Icon(icon, color: statusColor, size: 22),

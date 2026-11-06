@@ -595,6 +595,10 @@ class _PriorityAlerts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final alertColor = isDark
+        ? AppColors.statusExpiredDark
+        : AppColors.danger;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -603,14 +607,13 @@ class _PriorityAlerts extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
           child: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  color: AppColors.danger, size: 24),
+              Icon(Icons.warning_amber_rounded, color: alertColor, size: 24),
               const SizedBox(width: AppSpacing.sm),
               Text(
                 'Needs your attention',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.danger,
+                  color: alertColor,
                 ),
               ),
             ],
@@ -638,12 +641,62 @@ class _AllCaughtUpCard extends StatelessWidget {
   const _AllCaughtUpCard({super.key});
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: ListTile(
-          leading: Icon(Icons.check_circle_outline,
-              color: ExpiryStatus.ok.colorFor(context)),
-          title: const Text('All caught up!'),
-          subtitle: const Text('No documents need your attention right now.'),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final successColor = isDark
+        ? AppColors.statusOkDark
+        : AppColors.success;
+    return Container(
+      decoration: BoxDecoration(
+        color: successColor.withValues(alpha: isDark ? 0.12 : 0.08),
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(
+          color: successColor.withValues(alpha: isDark ? 0.35 : 0.2),
         ),
-      );
+      ),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: successColor.withValues(alpha: isDark ? 0.2 : 0.15),
+              borderRadius: BorderRadius.circular(AppRadii.control),
+            ),
+            child: Icon(
+              Icons.check_circle_outline,
+              color: successColor,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'All caught up!',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: successColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'No documents need your attention right now.',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
