@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../../documents/providers/document_providers.dart';
 import '../../pro/models/free_tier.dart';
@@ -8,8 +8,6 @@ import '../../settings/providers/settings_provider.dart';
 import '../models/profile.dart';
 import '../providers/profile_providers.dart';
 
-/// Manage the people whose documents are tracked (Me, Spouse, Child, ...).
-/// Deleting a person moves their documents to "Me" so nothing is ever orphaned.
 class ProfilesScreen extends ConsumerWidget {
   const ProfilesScreen({super.key});
 
@@ -19,71 +17,71 @@ class ProfilesScreen extends ConsumerWidget {
     final documents = ref.watch(documentsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('People')),
-      body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+      headers: [
+        AppBar(
+          title: const Text('People'),
+          trailing: [
+            Button.primary(
+              onPressed: () => _showProfileDialog(context: context, ref: ref),
+              leading: const Icon(LucideIcons.userPlus),
+              child: const Text('Add person'),
+            ),
+          ],
+        ),
+      ],
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         itemCount: profiles.length,
         itemBuilder: (context, index) {
           final profile = profiles[index];
-          final count = documents.where((d) => d.profileId == profile.id).length;
-          final isDefault = profile.id == Profile.selfId;
-
-          return Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                child: Text(
-                  profile.avatarEmoji ??
-                      (profile.name.isEmpty ? '?' : profile.name.substring(0, 1)),
-                ),
-              ),
-              title: Text(profile.name),
-              subtitle: Text(count == 1 ? '1 document' : '$count documents'),
-              trailing: PopupMenuButton<String>(
-                tooltip: 'More options for ${profile.name}',
-                onSelected: (action) async {
-                  switch (action) {
-                    case 'rename':
-                      await _showProfileDialog(
+          final count =
+              documents.where((d) => d.profileId == profile.id).length;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Card(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Button.ghost(
+                      alignment: Alignment.centerLeft,
+                      leading: Text(profile.avatarEmoji ??
+                          (profile.name.isEmpty
+                              ? '?'
+                              : profile.name.substring(0, 1))),
+                      onPressed: () => _showProfileDialog(
                         context: context,
                         ref: ref,
                         existing: profile,
-                      );
-                    case 'delete':
-                      await _confirmDelete(
-                        context: context,
-                        ref: ref,
-                        profile: profile,
-                        documentCount: count,
-                      );
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'rename', child: Text('Rename')),
-                  if (!isDefault)
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Text(
-                        'Delete',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(profile.name),
+                          Text(count == 1 ? '1 document' : '$count documents')
+                              .small()
+                              .muted(),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (profile.id != Profile.selfId)
+                    Semantics(
+                      label: 'Delete ${profile.name}',
+                      child: Button.ghost(
+                        onPressed: () => _confirmDelete(
+                          context: context,
+                          ref: ref,
+                          profile: profile,
+                          documentCount: count,
                         ),
+                        child: const Icon(LucideIcons.trash2),
                       ),
                     ),
                 ],
               ),
-              onTap: () => _showProfileDialog(
-                context: context,
-                ref: ref,
-                existing: profile,
-              ),
             ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showProfileDialog(context: context, ref: ref),
-        icon: const Icon(Icons.person_add_alt),
-        label: const Text('Add person'),
       ),
     );
   }
@@ -104,55 +102,49 @@ class ProfilesScreen extends ConsumerWidget {
       if (!withinLimit || !context.mounted) return;
     }
     final nameController = TextEditingController(text: existing?.name ?? '');
-    final emojiController = TextEditingController(text: existing?.avatarEmoji ?? '');
-
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(existing == null ? 'Add person' : 'Edit person'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'Spouse, Child, Parent...',
+    final emojiController =
+        TextEditingController(text: existing?.avatarEmoji ?? '');
+    final saved = await const DialogConfiguration()
+        .show<bool>(
+          context,
+          (ctx) => AlertDialog(
+            title: Text(existing == null ? 'Add person' : 'Edit person'),
+            content: SizedBox(
+              width: 320,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Name'),
+                  TextField(
+                    controller: nameController,
+                    autofocus: true,
+                    placeholder: const Text('Spouse, Child, Parent...'),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Emoji (optional)'),
+                  TextField(controller: emojiController, maxLength: 2),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: emojiController,
-              maxLength: 2,
-              decoration: const InputDecoration(
-                labelText: 'Emoji (optional)',
-                hintText: '🙂',
-                counterText: '',
+            actions: [
+              Button.ghost(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+              Button.primary(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Save'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-
+        )
+        .future;
     final name = nameController.text.trim();
     final emoji = emojiController.text.trim();
     nameController.dispose();
     emojiController.dispose();
-
     if (saved != true || name.isEmpty || !context.mounted) return;
-
     final notifier = ref.read(profilesProvider.notifier);
     if (existing == null) {
       await notifier.add(name, avatarEmoji: emoji.isEmpty ? null : emoji);
@@ -175,36 +167,30 @@ class ProfilesScreen extends ConsumerWidget {
         : documentCount == 1
             ? 'Delete ${profile.name}? Their 1 document moves to Me.'
             : 'Delete ${profile.name}? Their $documentCount documents move to Me.';
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete person'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+    final confirmed = await const DialogConfiguration()
+        .show<bool>(
+          context,
+          (ctx) => AlertDialog(
+            title: const Text('Delete person'),
+            content: Text(message),
+            actions: [
+              Button.ghost(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              Button.destructive(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-              foregroundColor: Theme.of(ctx).colorScheme.onError,
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
+        )
+        .future;
     if (confirmed != true) return;
-
     await ref
         .read(documentsProvider.notifier)
         .reassignProfile(profile.id, Profile.selfId);
     await ref.read(profilesProvider.notifier).remove(profile.id);
-
-    // Clear the dashboard filter if it pointed at the deleted person.
     if (ref.read(selectedProfileIdProvider) == profile.id) {
       ref.read(selectedProfileIdProvider.notifier).select(null);
     }

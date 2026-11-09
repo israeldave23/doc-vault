@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../settings/providers/settings_provider.dart';
@@ -84,7 +84,7 @@ class _LockGateState extends ConsumerState<LockGate>
         if (showLock)
           HeroControllerScope.none(
             child: Navigator(
-              onGenerateRoute: (_) => MaterialPageRoute<void>(
+              onGenerateRoute: (_) => ShadcnPageRoute<void>(
                 builder: (_) => LockScreen(
                   onUnlocked: () {
                     FocusManager.instance.primaryFocus?.unfocus();

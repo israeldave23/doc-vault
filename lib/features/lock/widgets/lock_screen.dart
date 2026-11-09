@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../../settings/providers/settings_provider.dart';
 import '../../settings/services/auth_service.dart';
@@ -88,8 +88,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: SafeArea(
+      backgroundColor: theme.colorScheme.background,
+      child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -99,7 +99,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                 children: [
                   ExcludeSemantics(
                     child: Icon(
-                      Icons.lock_outline,
+                      LucideIcons.lockKeyhole,
                       size: 56,
                       color: theme.colorScheme.primary,
                     ),
@@ -108,7 +108,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                   Text(
                     'Document Vault is locked',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.titleLarge,
+                    style: theme.typography.h3,
                   ),
                   const SizedBox(height: 24),
                   _PinDots(filled: _entered.length),
@@ -121,7 +121,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                             child: Text(
                               _error!,
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: theme.colorScheme.error),
+                              style: TextStyle(
+                                  color: theme.colorScheme.destructive),
                             ),
                           ),
                   ),
@@ -134,10 +135,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                             ? _verify
                             : null,
                     trailing: _biometricAvailable
-                        ? IconButton(
-                            iconSize: 34,
-                            tooltip: 'Unlock with biometrics',
-                            icon: const Icon(Icons.fingerprint),
+                        ? IconButton.ghost(
+                            icon: const Icon(LucideIcons.fingerprint),
                             onPressed: _biometricUnlock,
                           )
                         : const SizedBox(width: 48, height: 48),
@@ -169,10 +168,14 @@ class _PinDots extends StatelessWidget {
             for (var i = 0; i < AuthService.maxPinLength; i++)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(
-                  i < filled ? Icons.circle : Icons.circle_outlined,
-                  size: 18,
-                  color: i < filled ? scheme.primary : scheme.outline,
+                child: Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: i < filled ? scheme.primary : null,
+                    border: Border.all(color: scheme.border),
+                  ),
                 ),
               ),
           ],
@@ -204,12 +207,10 @@ class _Keypad extends StatelessWidget {
           child: SizedBox(
             width: 72,
             height: 64,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                shape: const CircleBorder(),
-              ),
+            child: Button.ghost(
+              style: const ButtonStyle.ghost(),
               onPressed: () => onDigit(label),
-              child: Text(label, style: const TextStyle(fontSize: 24)),
+              child: Text(label).large,
             ),
           ),
         );
@@ -236,10 +237,9 @@ class _Keypad extends StatelessWidget {
             SizedBox(
               width: 72,
               height: 64,
-              child: IconButton(
-                tooltip: 'Delete digit',
+              child: IconButton.ghost(
                 onPressed: onBackspace,
-                icon: const Icon(Icons.backspace_outlined),
+                icon: const Icon(LucideIcons.delete),
               ),
             ),
           ],
@@ -247,7 +247,7 @@ class _Keypad extends StatelessWidget {
         const SizedBox(height: 8),
         SizedBox(
           width: 216,
-          child: FilledButton(
+          child: Button.primary(
             onPressed: onSubmit,
             child: const Text('Unlock'),
           ),

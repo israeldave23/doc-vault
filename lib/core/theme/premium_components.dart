@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show TextInputAction;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../../features/profiles/models/profile.dart';
 import '../../features/profiles/providers/profile_providers.dart';
@@ -25,12 +26,21 @@ class PremiumHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.headerGradient,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(AppRadii.heroCard),
-        ),
+      decoration: BoxDecoration(
+        color: scheme.card,
+        borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(AppRadii.heroCard)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: SafeArea(
         child: Padding(
@@ -50,14 +60,10 @@ class PremiumHeader extends StatelessWidget {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: scheme.muted,
                       borderRadius: BorderRadius.circular(AppRadii.control),
                     ),
-                    child: const Icon(
-                      Icons.shield_outlined,
-                      color: Colors.white,
-                      size: 24,
-                    ),
+                    child: Icon(LucideIcons.shield, color: scheme.foreground),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
@@ -67,53 +73,45 @@ class PremiumHeader extends StatelessWidget {
                       children: [
                         Text(
                           'Document Vault',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: theme.typography.h4.copyWith(
+                            color: scheme.foreground,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           'Premium Digital Wallet',
-                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontWeight: FontWeight.w500,
-                              ),
+                          style: theme.typography.xSmall.copyWith(
+                            color: scheme.mutedForeground,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none_outlined,
-                        color: Colors.white),
+                  IconButton.ghost(
+                    icon: const Icon(LucideIcons.bell),
                     onPressed: onNotificationTap,
-                    tooltip: 'Notifications',
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.tune_outlined, color: Colors.white),
+                  IconButton.ghost(
+                    icon: const Icon(LucideIcons.slidersHorizontal),
                     onPressed: onSettingsTap,
-                    tooltip: 'Settings',
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
                 greeting,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontWeight: FontWeight.w500,
-                    ),
+                style: theme.typography.base.copyWith(
+                  color: scheme.mutedForeground,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 profileName,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: theme.typography.h3.copyWith(
+                  color: scheme.foreground,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -139,45 +137,29 @@ class PremiumSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadii.input),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+    return OutlinedContainer(
+      borderRadius: BorderRadius.circular(AppRadii.input),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
         textInputAction: TextInputAction.search,
-        decoration: InputDecoration(
-          hintText: 'Search your documents...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: controller.text.isEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.tune_outlined),
-                  onPressed: onFilterTap,
-                  tooltip: 'Filter',
+        hintText: 'Search your documents...',
+        features: [
+          const InputLeadingFeature(Icon(LucideIcons.search)),
+          controller.text.isEmpty
+              ? InputTrailingFeature(
+                  IconButton.ghost(
+                    icon: const Icon(LucideIcons.slidersHorizontal),
+                    onPressed: onFilterTap,
+                  ),
                 )
-              : IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: onClear,
-                  tooltip: 'Clear search',
+              : InputTrailingFeature(
+                  IconButton.ghost(
+                    icon: const Icon(LucideIcons.x),
+                    onPressed: onClear,
+                  ),
                 ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.md,
-          ),
-        ),
+        ],
       ),
     );
   }
@@ -203,15 +185,9 @@ class DocumentOverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: AppColors.summaryCardGradient,
+        color: Theme.of(context).colorScheme.card,
         borderRadius: BorderRadius.circular(AppRadii.heroCard),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.brandIndigo.withValues(alpha: 0.2),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        border: Border.all(color: Theme.of(context).colorScheme.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -220,8 +196,8 @@ class DocumentOverviewCard extends StatelessWidget {
           children: [
             Text(
               'YOUR DOCUMENTS',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.8),
+              style: Theme.of(context).typography.xSmall.copyWith(
+                    color: Theme.of(context).colorScheme.mutedForeground,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
                   ),
@@ -229,17 +205,16 @@ class DocumentOverviewCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               '$total Documents',
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
+              style: Theme.of(context).typography.h3.copyWith(
+                    color: Theme.of(context).colorScheme.foreground,
+                    fontWeight: FontWeight.w600,
                   ),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
               '$valid valid • $expiring expiring • $expired expired',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontWeight: FontWeight.w500,
+              style: Theme.of(context).typography.small.copyWith(
+                    color: Theme.of(context).colorScheme.mutedForeground,
                   ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -314,16 +289,16 @@ class _StatusIndicator extends StatelessWidget {
             children: [
               Text(
                 '$count',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
+                style: Theme.of(context).typography.medium.copyWith(
+                      color: Theme.of(context).colorScheme.foreground,
+                      fontWeight: FontWeight.w600,
                     ),
               ),
               const SizedBox(height: 4),
               Text(
                 label,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
+                style: Theme.of(context).typography.xSmall.copyWith(
+                      color: Theme.of(context).colorScheme.mutedForeground,
                       fontWeight: FontWeight.w600,
                     ),
               ),
@@ -357,7 +332,9 @@ class ExpiryAlertCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final statusColor = isDark
-        ? (isExpired ? AppColors.statusExpiredDark : AppColors.statusCriticalDark)
+        ? (isExpired
+            ? AppColors.statusExpiredDark
+            : AppColors.statusCriticalDark)
         : (isExpired ? AppColors.danger : AppColors.warning);
     final bgColor = statusColor.withValues(alpha: isDark ? 0.12 : 0.08);
 
@@ -392,7 +369,7 @@ class ExpiryAlertCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    style: Theme.of(context).typography.medium.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                     maxLines: 1,
@@ -401,7 +378,7 @@ class ExpiryAlertCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     daysLabel,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    style: Theme.of(context).typography.xSmall.copyWith(
                           color: statusColor,
                           fontWeight: FontWeight.w600,
                         ),
@@ -409,8 +386,8 @@ class ExpiryAlertCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right,
-                color: Theme.of(context).colorScheme.outline, size: 20),
+            Icon(LucideIcons.chevronRight,
+                color: Theme.of(context).colorScheme.border, size: 20),
           ],
         ),
       ),
@@ -442,27 +419,11 @@ class PremiumFilterChip extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          gradient: selected
-              ? AppColors.primaryActionGradient
-              : null,
-          color: selected
-              ? null
-              : scheme.surface,
+          color: selected ? scheme.primary : scheme.card,
           borderRadius: BorderRadius.circular(AppRadii.chip),
           border: Border.all(
-            color: selected
-                ? Colors.transparent
-                : scheme.outline.withValues(alpha: 0.3),
+            color: selected ? scheme.primary : scheme.border,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: AppColors.electricPurple.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
         ),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
@@ -470,8 +431,8 @@ class PremiumFilterChip extends StatelessWidget {
         ),
         child: Text(
           displayLabel,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: selected ? Colors.white : scheme.onSurface,
+          style: Theme.of(context).typography.xSmall.copyWith(
+                color: selected ? scheme.primaryForeground : scheme.foreground,
                 fontWeight: FontWeight.w600,
               ),
         ),
@@ -509,10 +470,10 @@ class PremiumDocumentCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: scheme.surface,
+          color: scheme.card,
           borderRadius: BorderRadius.circular(AppRadii.card),
           border: Border.all(
-            color: scheme.outline.withValues(alpha: 0.15),
+            color: scheme.border,
           ),
           boxShadow: [
             BoxShadow(
@@ -543,7 +504,7 @@ class PremiumDocumentCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    style: Theme.of(context).typography.medium.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                     maxLines: 1,
@@ -555,11 +516,8 @@ class PremiumDocumentCard extends StatelessWidget {
                       Flexible(
                         child: Text(
                           category,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(
-                                color: scheme.onSurfaceVariant,
+                          style: Theme.of(context).typography.xSmall.copyWith(
+                                color: scheme.mutedForeground,
                               ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -569,11 +527,8 @@ class PremiumDocumentCard extends StatelessWidget {
                       Flexible(
                         child: Text(
                           'Expires $expiryDate',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
-                              ?.copyWith(
-                                color: scheme.onSurfaceVariant,
+                          style: Theme.of(context).typography.xSmall.copyWith(
+                                color: scheme.mutedForeground,
                               ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -584,7 +539,7 @@ class PremiumDocumentCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     daysRemaining,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    style: Theme.of(context).typography.xSmall.copyWith(
                           color: statusColor,
                           fontWeight: FontWeight.w600,
                         ),
@@ -593,8 +548,8 @@ class PremiumDocumentCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Icon(Icons.chevron_right,
-                color: scheme.outline.withValues(alpha: 0.5), size: 20),
+            Icon(LucideIcons.chevronRight,
+                color: scheme.border.withValues(alpha: 0.5), size: 20),
           ],
         ),
       ),
@@ -622,9 +577,8 @@ class VaultProfileSelector extends ConsumerWidget {
           _ProfileChip(
             label: 'Everyone',
             selected: selectedProfile == null,
-            onTap: () => ref
-                .read(selectedProfileIdProvider.notifier)
-                .select(null),
+            onTap: () =>
+                ref.read(selectedProfileIdProvider.notifier).select(null),
           ),
           for (final profile in profiles)
             _ProfileChip(
@@ -636,10 +590,10 @@ class VaultProfileSelector extends ConsumerWidget {
             ),
           _ProfileChip(
             label: 'Manage',
-            icon: Icons.manage_accounts_outlined,
+            icon: LucideIcons.users,
             selected: false,
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
+              ShadcnPageRoute<void>(
                 builder: (_) => const ProfilesScreen(),
               ),
             ),
@@ -665,19 +619,15 @@ class _ProfileChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        avatar: icon == null ? null : Icon(icon, size: 18),
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
-        showCheckmark: false,
-        selectedColor: scheme.primaryContainer,
-        labelStyle: TextStyle(
-          color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
-        ),
+      child: Chip(
+        leading: icon == null ? null : Icon(icon, size: 18),
+        onPressed: onTap,
+        style: selected
+            ? const ButtonStyle.primary()
+            : const ButtonStyle.outline(),
+        child: Text(label),
       ),
     );
   }
@@ -724,9 +674,8 @@ class VaultStatusFilters extends ConsumerWidget {
                 label: option.$1,
                 count: option.$3 > 0 ? option.$3 : null,
                 selected: selectedStatus == option.$2,
-                onSelected: () => ref
-                    .read(statusFilterProvider.notifier)
-                    .select(option.$2),
+                onSelected: () =>
+                    ref.read(statusFilterProvider.notifier).select(option.$2),
               ),
             ),
         ],

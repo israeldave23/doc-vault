@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../../documents/providers/document_providers.dart';
 import '../../lock/providers/auth_providers.dart';
@@ -21,8 +21,8 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
+      headers: const [AppBar(title: Text('Settings'))],
+      child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
         children: [
           const _SectionHeader('Appearance'),
@@ -31,61 +31,59 @@ class SettingsScreen extends ConsumerWidget {
             (AppSettings.themeLight, 'Light'),
             (AppSettings.themeDark, 'Dark'),
           ])
-            ListTile(
-              title: Text(option.$2),
+            _SettingsTile(
+              title: option.$2,
               trailing: settings.themeMode == option.$1
-                  ? Icon(Icons.check,
-                      color: Theme.of(context).colorScheme.primary)
+                  ? const Icon(LucideIcons.check)
                   : null,
-              onTap: () => ref
+              onPressed: () => ref
                   .read(settingsProvider.notifier)
                   .update(settings.copyWith(themeMode: option.$1)),
             ),
-
           const _SectionHeader('Reminders'),
-          ListTile(
-            title: const Text('Default reminder schedule'),
-            subtitle: Text(_formatDays(settings.defaultReminderDays)),
-            onTap: () => _editDefaultReminders(context, ref),
+          _SettingsTile(
+            title: 'Default reminder schedule',
+            subtitle: _formatDays(settings.defaultReminderDays),
+            onPressed: () => _editDefaultReminders(context, ref),
           ),
-
           const _SectionHeader('Security'),
-          SwitchListTile(
-            title: const Text('Lock the app'),
-            subtitle: const Text('Ask for a PIN when the app opens or resumes'),
-            value: settings.appLockEnabled,
-            onChanged: (enable) =>
-                _toggleAppLock(context, ref, enable: enable),
+          _SettingsTile(
+            title: 'Lock the app',
+            subtitle: 'Ask for a PIN when the app opens or resumes',
+            trailing: Switch(
+              value: settings.appLockEnabled,
+              onChanged: (enable) =>
+                  _toggleAppLock(context, ref, enable: enable),
+            ),
           ),
-          SwitchListTile(
-            title: const Text('Unlock with fingerprint or face'),
-            subtitle: const Text('Available after the PIN is set up'),
-            value: settings.biometricsEnabled,
-            onChanged: settings.appLockEnabled
-                ? (enable) => _toggleBiometrics(context, ref, enable: enable)
-                : null,
+          _SettingsTile(
+            title: 'Unlock with fingerprint or face',
+            subtitle: 'Available after the PIN is set up',
+            trailing: Switch(
+              value: settings.biometricsEnabled,
+              enabled: settings.appLockEnabled,
+              onChanged: (enable) =>
+                  _toggleBiometrics(context, ref, enable: enable),
+            ),
           ),
-          ListTile(
-            title: const Text('Change PIN'),
+          _SettingsTile(
+            title: 'Change PIN',
             enabled: settings.appLockEnabled,
-            onTap: () => _changePin(context, ref),
+            onPressed: () => _changePin(context, ref),
           ),
-
           const _SectionHeader('Backup'),
-          ListTile(
-            leading: const Icon(Icons.ios_share_outlined),
-            title: const Text('Export encrypted backup'),
-            subtitle:
-                const Text('Documents, people, settings and photos in one file'),
-            onTap: () => _exportBackup(context, ref),
+          _SettingsTile(
+            leading: const Icon(LucideIcons.share),
+            title: 'Export encrypted backup',
+            subtitle: 'Documents, people, settings and photos in one file',
+            onPressed: () => _exportBackup(context, ref),
           ),
-          ListTile(
-            leading: const Icon(Icons.settings_backup_restore_outlined),
-            title: const Text('Restore from backup'),
-            subtitle: const Text('Replaces everything currently in the vault'),
-            onTap: () => _restoreBackup(context, ref),
+          _SettingsTile(
+            leading: const Icon(LucideIcons.archiveRestore),
+            title: 'Restore from backup',
+            subtitle: 'Replaces everything currently in the vault',
+            onPressed: () => _restoreBackup(context, ref),
           ),
-
           const _SectionHeader('Privacy'),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -97,9 +95,9 @@ class SettingsScreen extends ConsumerWidget {
               'targeting; upgrading to Pro removes ads entirely.',
             ),
           ),
-          const ListTile(
-            title: Text('Document Vault'),
-            subtitle: Text('Version 0.1.0 · by DGA Studios'),
+          const _SettingsTile(
+            title: 'Document Vault',
+            subtitle: 'Version 0.1.0 · by DGA Studios',
           ),
         ],
       ),
@@ -113,46 +111,51 @@ class SettingsScreen extends ConsumerWidget {
 
   // ------------------------------------------------------------- appearance
 
-  Future<void> _editDefaultReminders(BuildContext context, WidgetRef ref) async {
+  Future<void> _editDefaultReminders(
+      BuildContext context, WidgetRef ref) async {
     final settings = ref.read(settingsProvider);
     var selected = List<int>.of(settings.defaultReminderDays);
 
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: const Text('Default reminders'),
-          content: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final days in const [90, 60, 30, 14, 7, 3, 1])
-                FilterChip(
-                  label: Text(days == 1 ? '1 day' : '$days days'),
-                  selected: selected.contains(days),
-                  onSelected: (on) => setState(() {
-                    if (on) {
-                      selected.add(days);
-                    } else if (selected.length > 1) {
-                      selected.remove(days);
-                    }
-                  }),
+    final saved = await const DialogConfiguration()
+        .show<bool>(
+          context,
+          (ctx) => StatefulBuilder(
+            builder: (ctx, setState) => AlertDialog(
+              title: const Text('Default reminders'),
+              content: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final days in const [90, 60, 30, 14, 7, 3, 1])
+                    Button(
+                      style: selected.contains(days)
+                          ? const ButtonStyle.primary()
+                          : const ButtonStyle.outline(),
+                      onPressed: () => setState(() {
+                        if (selected.contains(days)) {
+                          if (selected.length > 1) selected.remove(days);
+                        } else {
+                          selected.add(days);
+                        }
+                      }),
+                      child: Text(days == 1 ? '1 day' : '$days days'),
+                    ),
+                ],
+              ),
+              actions: [
+                Button.ghost(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Cancel'),
                 ),
-            ],
+                Button.primary(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('Save'),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
+        )
+        .future;
     if (saved != true) return;
 
     selected = selected.toSet().toList()..sort((a, b) => b.compareTo(a));
@@ -267,10 +270,8 @@ class SettingsScreen extends ConsumerWidget {
     }
     if (context.mounted) hideProgress(context);
 
-    final stamp = DateTime.now()
-        .toIso8601String()
-        .substring(0, 10)
-        .replaceAll('-', '');
+    final stamp =
+        DateTime.now().toIso8601String().substring(0, 10).replaceAll('-', '');
     final path = await FilePicker.platform.saveFile(
       dialogTitle: 'Save encrypted backup',
       fileName: 'doc-vault-$stamp.dvault',
@@ -281,30 +282,28 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _restoreBackup(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Restore from backup?'),
-        content: const Text(
-          'This replaces every document, person, setting and photo currently '
-          'in the vault. This cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-              foregroundColor: Theme.of(ctx).colorScheme.onError,
+    final confirmed = await const DialogConfiguration()
+        .show<bool>(
+          context,
+          (ctx) => AlertDialog(
+            title: const Text('Restore from backup?'),
+            content: const Text(
+              'This replaces every document, person, setting and photo currently '
+              'in the vault. This cannot be undone.',
             ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Continue'),
+            actions: [
+              Button.ghost(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              Button.destructive(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Continue'),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        )
+        .future;
     if (confirmed != true || !context.mounted) return;
 
     final result = await FilePicker.platform.pickFiles(withData: true);
@@ -348,7 +347,9 @@ class SettingsScreen extends ConsumerWidget {
       note = ' · App lock turned off (set a PIN to re-enable)';
     }
 
-    await ref.read(reminderServiceProvider).syncAll(ref.read(documentsProvider));
+    await ref
+        .read(reminderServiceProvider)
+        .syncAll(ref.read(documentsProvider));
 
     if (!context.mounted) return;
     _snack(context, 'Restored $summary$note');
@@ -357,10 +358,9 @@ class SettingsScreen extends ConsumerWidget {
   // ----------------------------------------------------------------- misc
 
   void showProgress(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+    const DialogConfiguration(barrierDismissible: false).show<void>(
+      context,
+      (_) => const Center(child: CircularProgressIndicator()),
     );
   }
 
@@ -369,9 +369,12 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   void _snack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+    showToast(
+      context: context,
+      builder: (context, overlay) => Alert(
+        content: Text(message),
+      ),
+    );
   }
 
   /// Returns the chosen PIN, or `null` if cancelled.
@@ -383,60 +386,66 @@ class SettingsScreen extends ConsumerWidget {
     final confirmController = TextEditingController();
     String? error;
 
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: Text(title),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                autofocus: true,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: AuthService.maxPinLength,
-                decoration: InputDecoration(
-                  labelText: 'PIN (${AuthService.minPinLength}–${AuthService.maxPinLength} digits)',
-                  errorText: error,
+    final result = await const DialogConfiguration()
+        .show<String>(
+          context,
+          (ctx) => StatefulBuilder(
+            builder: (ctx, setState) => AlertDialog(
+              title: Text(title),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    obscureText: true,
+                    keyboardType: TextInputType.number,
+                    maxLength: AuthService.maxPinLength,
+                    placeholder: const Text(
+                        'PIN (${AuthService.minPinLength}–${AuthService.maxPinLength} digits)'),
+                  ),
+                  if (error != null)
+                    Text(
+                      error!,
+                      style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.destructive),
+                    ).xSmall,
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: confirmController,
+                    obscureText: true,
+                    keyboardType: TextInputType.number,
+                    maxLength: AuthService.maxPinLength,
+                    placeholder: const Text('Repeat PIN'),
+                  ),
+                ],
+              ),
+              actions: [
+                Button.ghost(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: confirmController,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: AuthService.maxPinLength,
-                decoration: const InputDecoration(labelText: 'Repeat PIN'),
-              ),
-            ],
+                Button.primary(
+                  onPressed: () {
+                    final pin = controller.text.trim();
+                    if (!AuthService.isValidPin(pin)) {
+                      setState(() => error =
+                          'Use ${AuthService.minPinLength}–${AuthService.maxPinLength} digits');
+                      return;
+                    }
+                    if (pin != confirmController.text.trim()) {
+                      setState(() => error = 'PINs do not match');
+                      return;
+                    }
+                    Navigator.of(ctx).pop(pin);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final pin = controller.text.trim();
-                if (!AuthService.isValidPin(pin)) {
-                  setState(() => error =
-                      'Use ${AuthService.minPinLength}–${AuthService.maxPinLength} digits');
-                  return;
-                }
-                if (pin != confirmController.text.trim()) {
-                  setState(() => error = 'PINs do not match');
-                  return;
-                }
-                Navigator.of(ctx).pop(pin);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
+        )
+        .future;
     controller.dispose();
     confirmController.dispose();
     return result;
@@ -451,36 +460,38 @@ class SettingsScreen extends ConsumerWidget {
     final controller = TextEditingController();
     final auth = ref.read(authServiceProvider);
 
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          maxLength: AuthService.maxPinLength,
-          onSubmitted: (_) async {
-            final ok = await auth.verifyPin(controller.text.trim());
-            if (ctx.mounted) Navigator.of(ctx).pop(ok);
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+    return const DialogConfiguration()
+        .show<bool>(
+          context,
+          (ctx) => AlertDialog(
+            title: Text(title),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              obscureText: true,
+              keyboardType: TextInputType.number,
+              maxLength: AuthService.maxPinLength,
+              onSubmitted: (_) async {
+                final ok = await auth.verifyPin(controller.text.trim());
+                if (ctx.mounted) Navigator.of(ctx).pop(ok);
+              },
+            ),
+            actions: [
+              Button.ghost(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              Button.primary(
+                onPressed: () async {
+                  final ok = await auth.verifyPin(controller.text.trim());
+                  if (ctx.mounted) Navigator.of(ctx).pop(ok);
+                },
+                child: const Text('Confirm'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () async {
-              final ok = await auth.verifyPin(controller.text.trim());
-              if (ctx.mounted) Navigator.of(ctx).pop(ok);
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
+        )
+        .future;
   }
 
   /// Returns the passphrase, or `null` if cancelled.
@@ -492,62 +503,104 @@ class SettingsScreen extends ConsumerWidget {
     final confirmController = TextEditingController();
     String? error;
 
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: Text(confirm ? 'Set a backup passphrase' : 'Enter passphrase'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'There is no way to recover this passphrase. Store it somewhere '
-                'safe — without it the backup cannot be opened.',
-                style: TextStyle(fontSize: 13),
+    return const DialogConfiguration()
+        .show<String>(
+          context,
+          (ctx) => StatefulBuilder(
+            builder: (ctx, setState) => AlertDialog(
+              title: Text(
+                  confirm ? 'Set a backup passphrase' : 'Enter passphrase'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'There is no way to recover this passphrase. Store it somewhere '
+                    'safe — without it the backup cannot be opened.',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    obscureText: true,
+                    placeholder: const Text('Passphrase (min 8 characters)'),
+                  ),
+                  if (error != null)
+                    Text(
+                      error!,
+                      style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.destructive),
+                    ).xSmall,
+                  if (confirm) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: confirmController,
+                      obscureText: true,
+                      placeholder: const Text('Repeat passphrase'),
+                    ),
+                  ],
+                ],
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Passphrase (min 8 characters)',
-                  errorText: error,
+              actions: [
+                Button.ghost(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
                 ),
-              ),
-              if (confirm) ...[
-                const SizedBox(height: 12),
-                TextField(
-                  controller: confirmController,
-                  obscureText: true,
-                  decoration:
-                      const InputDecoration(labelText: 'Repeat passphrase'),
+                Button.primary(
+                  onPressed: () {
+                    final pass = controller.text;
+                    if (pass.length < 8) {
+                      setState(() => error = 'Use at least 8 characters');
+                      return;
+                    }
+                    if (confirm && pass != confirmController.text) {
+                      setState(() => error = 'Passphrases do not match');
+                      return;
+                    }
+                    Navigator.of(ctx).pop(pass);
+                  },
+                  child: Text(confirm ? 'Export' : 'Unlock'),
                 ),
               ],
-            ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final pass = controller.text;
-                if (pass.length < 8) {
-                  setState(() => error = 'Use at least 8 characters');
-                  return;
-                }
-                if (confirm && pass != confirmController.text) {
-                  setState(() => error = 'Passphrases do not match');
-                  return;
-                }
-                Navigator.of(ctx).pop(pass);
-              },
-              child: Text(confirm ? 'Export' : 'Unlock'),
-            ),
-          ],
-        ),
+        )
+        .future;
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.title,
+    this.subtitle,
+    this.leading,
+    this.trailing,
+    this.onPressed,
+    this.enabled = true,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? leading;
+  final Widget? trailing;
+  final VoidCallback? onPressed;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Button.ghost(
+      enabled: enabled,
+      alignment: Alignment.centerLeft,
+      onPressed: onPressed,
+      leading: leading,
+      trailing: trailing,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title),
+          if (subtitle != null) Text(subtitle!).small().muted(),
+        ],
       ),
     );
   }
@@ -564,11 +617,8 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 24, 0, 4),
       child: Text(
         title.toUpperCase(),
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              letterSpacing: 1.1,
-            ),
-      ),
+        style: TextStyle(color: Theme.of(context).colorScheme.primary),
+      ).xSmall.semiBold,
     );
   }
 }

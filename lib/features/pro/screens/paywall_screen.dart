@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../../settings/providers/settings_provider.dart';
 import '../models/free_tier.dart';
@@ -39,8 +39,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Document Vault Pro')),
-      body: ListView(
+      headers: const [AppBar(title: Text('Document Vault Pro'))],
+      child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
         children: [
           Center(
@@ -51,7 +51,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 children: [
                   ExcludeSemantics(
                     child: Icon(
-                      Icons.workspace_premium,
+                      LucideIcons.gem,
                       size: 64,
                       color: theme.colorScheme.primary,
                     ),
@@ -60,16 +60,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   Text(
                     'Unlock Pro forever',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineSmall,
+                    style: theme.typography.h3,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'One payment, no subscription. Your data never leaves the '
                     'device either way.',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: theme.typography.p
+                        .copyWith(color: theme.colorScheme.mutedForeground),
                   ),
                   if (widget.reason != null) ...[
                     const SizedBox(height: 16),
@@ -78,14 +77,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.secondaryContainer,
+                          color: theme.colorScheme.secondary,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           widget.reason!,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: theme.colorScheme.onSecondaryContainer,
+                            color: theme.colorScheme.secondaryForeground,
                           ),
                         ),
                       ),
@@ -98,19 +97,20 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     'No banner ads',
                     'Support an independent offline-first app',
                   ])
-                    ListTile(
+                    Button.ghost(
+                      alignment: Alignment.centerLeft,
                       leading: Icon(
-                        Icons.check_circle,
+                        LucideIcons.circleCheck,
                         color: theme.colorScheme.primary,
                       ),
-                      title: Text(feature),
-                      contentPadding: EdgeInsets.zero,
+                      onPressed: null,
+                      child: Text(feature),
                     ),
                   const SizedBox(height: 16),
-                  FilledButton.icon(
+                  Button.primary(
                     onPressed: pro.storeAvailable ? () => pro.buyPro() : null,
-                    icon: const Icon(Icons.lock_open),
-                    label: Text(
+                    leading: const Icon(LucideIcons.lockKeyholeOpen),
+                    child: Text(
                       pro.storeAvailable
                           ? 'Unlock Pro — ${pro.priceLabel ?? ''}'
                           : 'Purchases unavailable',
@@ -122,10 +122,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       'The Play Store is not available on this device, so the '
                       'price cannot be shown right now.',
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall,
+                      style: theme.typography.small,
                     ),
                   ],
-                  TextButton(
+                  Button.link(
                     onPressed: () => pro.restorePurchases(),
                     child: const Text('Restore purchase'),
                   ),
@@ -136,7 +136,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       child: Text(
                         message,
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall,
+                        style: theme.typography.small
+                            .copyWith(color: theme.colorScheme.mutedForeground),
                       ),
                     ),
                   ],
@@ -146,9 +147,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     '${FreeTier.maxProfiles} people. Reminders, encryption and '
                     'app lock are always free.',
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: theme.typography.xSmall
+                        .copyWith(color: theme.colorScheme.mutedForeground),
                   ),
                 ],
               ),

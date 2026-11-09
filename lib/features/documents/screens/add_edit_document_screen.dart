@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show TextCapitalization;
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -31,7 +32,6 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   static const int _maxPhotos = 3;
   static const List<String> _slotLabels = <String>['Front', 'Back', 'Page 3'];
 
-  final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _idNumberController;
   late final TextEditingController _notesController;
@@ -102,8 +102,8 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     }
   }
 
-  List<int> _sortedReminderDays() => List<int>.of(_reminderDays)
-    ..sort((a, b) => b.compareTo(a));
+  List<int> _sortedReminderDays() =>
+      List<int>.of(_reminderDays)..sort((a, b) => b.compareTo(a));
 
   String _reminderSummary() {
     if (!_remindersEnabled) return 'Reminders are off for this document';
@@ -117,30 +117,29 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   Future<void> _showPhotoSourceSheet() async {
     if (_imagePaths.length >= _maxPhotos || _isCapturingPhoto) return;
 
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
+    final source = await const DialogConfiguration().show<ImageSource>(
+      context,
+      (ctx) => AlertDialog(
+        title: const Text('Add photo'),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Take photo'),
-              subtitle: const Text('Capture and crop with camera'),
-              onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
+            Button.ghost(
+              alignment: Alignment.centerLeft,
+              leading: const Icon(LucideIcons.camera),
+              onPressed: () => Navigator.of(ctx).pop(ImageSource.camera),
+              child: const Text('Take photo'),
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choose from gallery'),
-              subtitle: const Text('Pick an existing image and crop'),
-              onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
+            Button.ghost(
+              alignment: Alignment.centerLeft,
+              leading: const Icon(LucideIcons.images),
+              onPressed: () => Navigator.of(ctx).pop(ImageSource.gallery),
+              child: const Text('Choose from gallery'),
             ),
-            const SizedBox(height: 8),
           ],
         ),
       ),
-    );
+    ).future;
 
     if (source == null || !mounted) return;
     await _captureFromSource(source);
@@ -172,8 +171,11 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not add photo: $e')),
+      showToast(
+        context: context,
+        showDuration: const Duration(seconds: 2),
+        builder: (context, overlay) =>
+            Alert(content: Text('Could not add photo: $e')),
       );
     } finally {
       if (mounted) {
@@ -195,13 +197,25 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   Future<void> _pickDate({required bool isExpiry}) async {
     final now = DateTime.now();
     final initial = (isExpiry ? _expiryDate : _issueDate) ?? now;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(now.year - 30),
-      lastDate: DateTime(now.year + 30),
-      helpText: isExpiry ? 'Expiry date' : 'Issue date',
-    );
+    final picked = await const DialogConfiguration().show<DateTime>(
+      context,
+      (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DatePicker(
+            value: initial,
+            stateBuilder: (date) => date.isBefore(
+                DateTime(now.year - 30, now.month, now.day))
+                ? DateState.disabled
+                : date.isAfter(DateTime(now.year + 30, now.month, now.day))
+                    ? DateState.disabled
+                    : DateState.enabled,
+            onChanged: (date) => Navigator.of(ctx).pop(date),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    ).future;
     if (picked == null) return;
     setState(() {
       if (isExpiry) {
@@ -219,10 +233,13 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
       await _saveDocument();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_didSave
-              ? 'Document saved, but reminder setup failed.'
-              : 'Could not save document. Please try again.')),
+        showToast(
+          context: context,
+          builder: (context, overlay) => Alert(
+            content: Text(_didSave
+                ? 'Document saved, but reminder setup failed.'
+                : 'Could not save document. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -231,10 +248,19 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   }
 
   Future<void> _saveDocument() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_titleController.text.trim().isEmpty) {
+      showToast(
+        context: context,
+        builder: (context, overlay) =>
+            const Alert(content: Text('Title is required')),
+      );
+      return;
+    }
     if (_expiryDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose an expiry date')),
+      showToast(
+        context: context,
+        builder: (context, overlay) =>
+            const Alert(content: Text('Please choose an expiry date')),
       );
       return;
     }
@@ -284,14 +310,15 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     await ref.read(documentsProvider.notifier).upsert(document);
     _didSave = true;
     if (mounted && _originalImagePaths.isNotEmpty) {
-      final removedPaths = _originalImagePaths.where(
-        (path) => !_imagePaths.contains(path),
-      ).toList(growable: false);
+      final removedPaths = _originalImagePaths
+          .where((path) => !_imagePaths.contains(path))
+          .toList(growable: false);
       if (removedPaths.isNotEmpty) {
         try {
           await _imageStore.deleteAll(removedPaths);
         } catch (_) {
-          // Cleanup failure should not block success. Ciphertext persists, plaintext is gone.
+          // Cleanup failure should not block success. Ciphertext persists,
+          // plaintext is gone.
         }
       }
     }
@@ -300,13 +327,13 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     if (_remindersEnabled) {
       // Explain and request notification permission only now that the user
       // actually saved something with reminders on.
-      final granted = await ref
-          .read(reminderServiceProvider)
-          .ensurePermission(context);
+      final granted =
+          await ref.read(reminderServiceProvider).ensurePermission(context);
       if (!mounted) return;
       if (!granted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+        showToast(
+          context: context,
+          builder: (context, overlay) => const Alert(
             content: Text(
               'Saved, but notifications are off — reminders will not fire.',
             ),
@@ -325,202 +352,256 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     final dateFormat = DateFormat.yMMMd();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Edit document' : 'Add document'),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _SectionHeading(
-              icon: Icons.document_scanner_outlined,
-              title: _isEditing ? 'Document details' : 'Add to your vault',
-              description: 'Photos stay encrypted on this device. Only title and expiry date are required.',
-            ),
-            const SizedBox(height: 16),
-            _PhotosSection(
-              imagePaths: _imagePaths,
-              maxPhotos: _maxPhotos,
-              slotLabels: _slotLabels,
-              isBusy: _isCapturingPhoto,
-              onAddPhoto: _showPhotoSourceSheet,
-              onRemovePhoto: _removePhotoAt,
-              onPreviewPhoto: (index) {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => EncryptedPhotoViewerScreen(
-                      title: _titleController.text.trim().isEmpty
-                          ? 'Document Photo'
-                          : _titleController.text.trim(),
-                      imagePaths: List<String>.of(_imagePaths),
-                      initialIndex: index,
-                    ),
+      headers: [
+        AppBar(
+          title: Text(_isEditing ? 'Edit document' : 'Add document'),
+        ),
+      ],
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _SectionHeading(
+            icon: LucideIcons.fileScan,
+            title: _isEditing ? 'Document details' : 'Add to your vault',
+            description:
+                'Photos stay encrypted on this device. Only title and expiry date are required.',
+          ),
+          const SizedBox(height: 16),
+          _PhotosSection(
+            imagePaths: _imagePaths,
+            maxPhotos: _maxPhotos,
+            slotLabels: _slotLabels,
+            isBusy: _isCapturingPhoto,
+            onAddPhoto: _showPhotoSourceSheet,
+            onRemovePhoto: _removePhotoAt,
+            onPreviewPhoto: (index) {
+              Navigator.of(context).push(
+                ShadcnPageRoute<void>(
+                  builder: (_) => EncryptedPhotoViewerScreen(
+                    title: _titleController.text.trim().isEmpty
+                        ? 'Document Photo'
+                        : _titleController.text.trim(),
+                    imagePaths: List<String>.of(_imagePaths),
+                    initialIndex: index,
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-            const _SectionLabel('Document'),
-            const SizedBox(height: 10),
-            TextFormField(
-              controller: _titleController,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                hintText: 'e.g. Philippine Passport',
-              ),
-              validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Title is required' : null,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _categoryKey,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                prefixIcon: Icon(Icons.category_outlined),
-              ),
-              items: [
-                for (final category in DocumentCategory.all)
-                  DropdownMenuItem(
-                    value: category.key,
-                    child: Row(
-                      children: [
-                        Icon(category.icon, size: 20),
-                        const SizedBox(width: 12),
-                        Text(category.label),
-                      ],
-                    ),
-                  ),
-              ],
-              onChanged: (value) {
-                if (value != null) setState(() => _categoryKey = value);
-              },
-            ),
-            const SizedBox(height: 24),
-            const _SectionLabel('Important dates'),
-            const SizedBox(height: 10),
-            _DateTile(
-              label: 'Expiry date *',
-              value: _expiryDate == null ? null : dateFormat.format(_expiryDate!),
-              onTap: () => _pickDate(isExpiry: true),
-            ),
-            if (_detectedExpiry != null) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 6, 0, 0),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.auto_awesome,
-                      size: 14,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _expiryDate == _detectedExpiry
-                            ? 'Detected from photo — ${dateFormat.format(_detectedExpiry!)}'
-                            : 'Detected from photo: ${dateFormat.format(_detectedExpiry!)}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                    if (_expiryDate != _detectedExpiry)
-                      TextButton(
-                        onPressed: () =>
-                            setState(() => _expiryDate = _detectedExpiry),
-                        child: const Text('Use date'),
-                      ),
-                  ],
                 ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            _DateTile(
-              label: 'Issue date (optional)',
-              value: _issueDate == null ? null : dateFormat.format(_issueDate!),
-              onTap: () => _pickDate(isExpiry: false),
-              onClear: _issueDate == null
-                  ? null
-                  : () => setState(() => _issueDate = null),
-            ),
-            const SizedBox(height: 24),
-            const _SectionLabel('Owner and private details'),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              initialValue: profiles.any((p) => p.id == _profileId)
-                  ? _profileId
-                  : Profile.selfId,
-              decoration: const InputDecoration(labelText: 'Belongs to'),
-              items: [
-                for (final p in profiles)
-                  DropdownMenuItem(
-                    value: p.id,
-                    child: Text('${p.avatarEmoji ?? ''} ${p.name}'.trim()),
-                  ),
-              ],
-              onChanged: (value) {
-                if (value != null) setState(() => _profileId = value);
-              },
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: _idNumberController,
-              decoration: const InputDecoration(
-                labelText: 'ID number (optional)',
-                helperText: 'Only the last 4 characters are shown in lists',
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: _notesController,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Notes (optional)'),
-            ),
-            const SizedBox(height: 24),
-            const _SectionLabel('Reminders'),
-            const SizedBox(height: 6),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Remind me before it expires'),
-              subtitle: Text(_reminderSummary()),
-              value: _remindersEnabled,
-              onChanged: (value) => setState(() => _remindersEnabled = value),
-            ),
-            if (_remindersEnabled) ...[
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          const _SectionLabel('Document'),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _titleController,
+            placeholder: const Text('e.g. Philippine Passport'),
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 16),
+          Select<String>(
+            value: _categoryKey,
+            placeholder: const Text('Category'),
+            onChanged: (value) {
+              if (value != null) setState(() => _categoryKey = value);
+            },
+            itemBuilder: (context, value) => Text(DocumentCategory.byKey(value).label),
+            popup: (context) => SelectPopup(
+              items: SelectItemList(
                 children: [
-                  for (final days in _reminderOptions)
-                    FilterChip(
-                      label: Text(days == 1 ? '1 day' : '$days days'),
-                      selected: _reminderDays.contains(days),
-                      onSelected: (selected) =>
-                          setState(() => _toggleReminderDay(days, selected)),
+                  for (final category in DocumentCategory.all)
+                    SelectItemButton(
+                      value: category.key,
+                      child: Row(
+                        children: [
+                          Icon(category.icon, size: 20),
+                          const SizedBox(width: 12),
+                          Text(category.label),
+                        ],
+                      ),
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Choose at least one reminder. Documents are alerted at 9:00 AM on each selected day before expiry.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-            const SizedBox(height: 24),
-            SafeArea(
-              top: false,
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _isSaving ? null : _save,
-                  icon: const Icon(Icons.check),
-                  label: Text(_isEditing ? 'Save changes' : 'Save document'),
-                ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const _SectionLabel('Important dates'),
+          const SizedBox(height: 10),
+          _DateTile(
+            label: 'Expiry date *',
+            value: _expiryDate == null ? null : dateFormat.format(_expiryDate!),
+            onTap: () => _pickDate(isExpiry: true),
+          ),
+          if (_detectedExpiry != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 6, 0, 0),
+              child: Row(
+                children: [
+                  Icon(
+                    LucideIcons.sparkles,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _expiryDate == _detectedExpiry
+                          ? 'Detected from photo — '
+                              '${dateFormat.format(_detectedExpiry!)}'
+                          : 'Detected from photo: '
+                              '${dateFormat.format(_detectedExpiry!)}',
+                      style: Theme.of(context).typography.small.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.mutedForeground,
+                          ),
+                    ),
+                  ),
+                  if (_expiryDate != _detectedExpiry)
+                    Button.ghost(
+                      onPressed: () =>
+                          setState(() => _expiryDate = _detectedExpiry),
+                      child: const Text('Use date'),
+                    ),
+                ],
               ),
             ),
           ],
-        ),
+          const SizedBox(height: 12),
+          _DateTile(
+            label: 'Issue date (optional)',
+            value:
+                _issueDate == null ? null : dateFormat.format(_issueDate!),
+            onTap: () => _pickDate(isExpiry: false),
+            onClear: _issueDate == null
+                ? null
+                : () => setState(() => _issueDate = null),
+          ),
+          const SizedBox(height: 24),
+          const _SectionLabel('Owner and private details'),
+          const SizedBox(height: 10),
+          Select<String>(
+            value: profiles.any((p) => p.id == _profileId)
+                ? _profileId
+                : Profile.selfId,
+            placeholder: const Text('Belongs to'),
+            onChanged: (value) {
+              if (value != null) setState(() => _profileId = value);
+            },
+            itemBuilder: (context, value) {
+              final profile =
+                  profiles.where((p) => p.id == value).firstOrNull;
+              return Text('${profile?.avatarEmoji ?? ''} ${profile?.name ?? ''}'
+                  .trim());
+            },
+            popup: (context) => SelectPopup(
+              items: SelectItemList(
+                children: [
+                  for (final p in profiles)
+                    SelectItemButton(
+                      value: p.id,
+                      child: Text('${p.avatarEmoji ?? ''} ${p.name}'.trim()),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _idNumberController,
+            placeholder: const Text('ID number (optional)'),
+          ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _notesController,
+            placeholder: const Text('Notes (optional)'),
+            maxLines: 3,
+          ),
+          const SizedBox(height: 24),
+          const _SectionLabel('Reminders'),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Remind me before it expires'),
+                    const SizedBox(height: 4),
+                    Text(
+                      _reminderSummary(),
+                      style: Theme.of(context).typography.small.copyWith(
+                            color: Theme.of(context).colorScheme.mutedForeground,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _remindersEnabled,
+                onChanged: (value) =>
+                    setState(() => _remindersEnabled = value),
+              ),
+            ],
+          ),
+          if (_remindersEnabled) ...[
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final days in _reminderOptions)
+                  GestureDetector(
+                    onTap: () =>
+                        _toggleReminderDay(days, !_reminderDays.contains(days)),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        color: _reminderDays.contains(days)
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.muted,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: _reminderDays.contains(days)
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.muted,
+                        ),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        days == 1 ? '1 day' : '$days days',
+                        style: Theme.of(context).typography.small.copyWith(
+                              color: _reminderDays.contains(days)
+                                  ? Theme.of(context).colorScheme.foreground
+                                  : Theme.of(context).colorScheme.foreground,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Choose at least one reminder. Documents are alerted at 9:00 AM on each selected day before expiry.',
+              style: Theme.of(context).typography.small.copyWith(
+                    color: Theme.of(context).colorScheme.mutedForeground,
+                  ),
+            ),
+          ],
+          const SizedBox(height: 24),
+          SafeArea(
+            top: false,
+            child: SizedBox(
+              width: double.infinity,
+              child: Button.primary(
+                onPressed: _isSaving ? null : _save,
+                leading: const Icon(LucideIcons.check),
+                child: Text(_isEditing ? 'Save changes' : 'Save document'),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -543,13 +624,13 @@ class _SectionHeading extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer,
+        color: theme.colorScheme.muted,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: theme.colorScheme.onPrimaryContainer),
+          Icon(icon, color: theme.colorScheme.foreground),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -557,16 +638,16 @@ class _SectionHeading extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
+                  style: theme.typography.medium.copyWith(
+                    color: theme.colorScheme.foreground,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
+                  style: theme.typography.small.copyWith(
+                    color: theme.colorScheme.mutedForeground,
                   ),
                 ),
               ],
@@ -586,9 +667,10 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         label,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+        style: Theme.of(context)
+            .typography
+            .small
+            .copyWith(fontWeight: FontWeight.w700),
       );
 }
 
@@ -622,27 +704,28 @@ class _PhotosSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(Icons.lock_outline, size: 16, color: scheme.primary),
+            Icon(LucideIcons.lock, size: 16, color: scheme.primary),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
                 'Photos (${imagePaths.length}/$maxPhotos) · AES-256 encrypted on device',
-                style: theme.textTheme.labelLarge,
+                style: theme.typography.small.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 10),
         if (imagePaths.isEmpty)
-          InkWell(
-            onTap: isBusy ? null : onAddPhoto,
-            borderRadius: BorderRadius.circular(16),
+          Button.outline(
+            onPressed: isBusy ? null : onAddPhoto,
             child: Container(
               height: 140,
               decoration: BoxDecoration(
-                color: scheme.surfaceContainerHighest,
+                color: scheme.muted,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: scheme.outlineVariant),
+                border: Border.all(color: scheme.muted),
               ),
               child: Center(
                 child: isBusy
@@ -651,14 +734,14 @@ class _PhotosSection extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.add_a_photo_outlined,
+                            LucideIcons.imagePlus,
                             size: 36,
                             color: scheme.primary,
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Scan or upload document photo (Front / Back)',
-                            style: TextStyle(color: scheme.onSurfaceVariant),
+                            style: TextStyle(color: scheme.mutedForeground),
                           ),
                         ],
                       ),
@@ -676,41 +759,44 @@ class _PhotosSection extends StatelessWidget {
                     padding: const EdgeInsets.only(right: 12),
                     child: _PhotoThumbnailTile(
                       storedPath: imagePaths[i],
-                      label: i < slotLabels.length
-                          ? slotLabels[i]
-                          : 'Page ${i + 1}',
+                      label:
+                          i < slotLabels.length ? slotLabels[i] : 'Page ${i + 1}',
                       onTap: () => onPreviewPhoto(i),
                       onRemove: () => onRemovePhoto(i),
                     ),
                   ),
                 if (canAddMore)
-                  InkWell(
-                    onTap: isBusy ? null : onAddPhoto,
-                    borderRadius: BorderRadius.circular(14),
+                  Button.outline(
+                    onPressed: isBusy ? null : onAddPhoto,
                     child: Container(
                       width: 112,
                       decoration: BoxDecoration(
-                        color: scheme.surfaceContainerHighest,
+                        color: scheme.muted,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: scheme.outlineVariant),
+                        border: Border.all(color: scheme.muted),
                       ),
                       child: Center(
                         child: isBusy
                             ? const SizedBox(
                                 width: 24,
                                 height: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.add_a_photo_outlined, color: scheme.primary),
+                                  Icon(LucideIcons.imagePlus,
+                                      color: scheme.primary),
                                   const SizedBox(height: 6),
                                   Text(
                                     imagePaths.length < slotLabels.length
                                         ? 'Add ${slotLabels[imagePaths.length]}'
                                         : 'Add photo',
-                                    style: theme.textTheme.labelMedium,
+                                    style: theme.typography.xSmall.copyWith(
+                                      color: scheme.foreground,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -760,7 +846,10 @@ class _PhotoThumbnailTile extends StatelessWidget {
             left: 8,
             bottom: 8,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 3,
+              ),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.65),
                 borderRadius: BorderRadius.circular(8),
@@ -778,19 +867,15 @@ class _PhotoThumbnailTile extends StatelessWidget {
           Positioned(
             right: 6,
             top: 6,
-            child: Material(
-              color: Colors.black.withValues(alpha: 0.65),
-              shape: const CircleBorder(),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: onRemove,
-                child: const Tooltip(
-                  message: 'Remove photo',
-                  child: SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: Icon(Icons.close, size: 20, color: Colors.white),
-                  ),
+            child: Semantics(
+              label: 'Remove photo',
+              button: true,
+              child: Tooltip(
+                tooltip: (_) => const TooltipContainer(child: Text('Remove photo')),
+                child: IconButton.destructive(
+                  icon: const Icon(LucideIcons.x, size: 20),
+                  onPressed: onRemove,
+                  shape: ButtonShape.circle,
                 ),
               ),
             ),
@@ -816,17 +901,43 @@ class _DateTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          suffixIcon: onClear != null
-              ? IconButton(icon: const Icon(Icons.clear), onPressed: onClear)
-              : const Icon(Icons.calendar_today_outlined),
+    return Button.outline(
+      onPressed: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Theme.of(context).colorScheme.muted),
         ),
-        child: Text(value ?? 'Tap to choose'),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: Theme.of(context).typography.xSmall.copyWith(
+                          color: Theme.of(context).colorScheme.mutedForeground,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value ?? 'Tap to choose',
+                    style: Theme.of(context).typography.medium,
+                  ),
+                ],
+              ),
+            ),
+            if (onClear != null)
+              IconButton.ghost(
+                icon: const Icon(LucideIcons.x),
+                onPressed: onClear,
+              )
+            else
+              const Icon(LucideIcons.calendarDays),
+          ],
+        ),
       ),
     );
   }

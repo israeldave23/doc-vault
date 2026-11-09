@@ -4,9 +4,9 @@ import 'package:doc_vault/features/lock/widgets/lock_gate.dart';
 import 'package:doc_vault/features/settings/models/app_settings.dart';
 import 'package:doc_vault/features/settings/providers/settings_provider.dart';
 import 'package:doc_vault/features/settings/services/auth_service.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 class _Settings extends SettingsNotifier {
   @override
@@ -33,19 +33,19 @@ void main() {
         settingsProvider.overrideWith(_LockedSettings.new),
         authServiceProvider.overrideWith((ref) => _Auth()),
       ],
-      child: MaterialApp(
+      child: ShadcnApp(
         builder: (context, child) => LockGate(
           child: child ?? const SizedBox.shrink(),
         ),
-        home: const Scaffold(body: Text('Vault')),
+        home: const Scaffold(child: Text('Vault')),
       ),
     ));
 
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Delete digit'));
+    await tester.tap(find.byIcon(LucideIcons.delete));
     await tester.pumpAndSettle();
     for (final digit in ['1', '2', '3', '4', '5', '6']) {
-      await tester.tap(find.text(digit));
+      await tester.tap(find.bySemanticsLabel('Digit $digit'));
       await tester.pump();
     }
     await tester.tap(find.text('Unlock'));
@@ -63,10 +63,10 @@ void main() {
         settingsProvider.overrideWith(_Settings.new),
         authServiceProvider.overrideWith((ref) => _Auth()),
       ],
-      child: MaterialApp(home: LockScreen(onUnlocked: () => unlocked = true)),
+      child: ShadcnApp(home: LockScreen(onUnlocked: () => unlocked = true)),
     ));
     for (final digit in ['1', '2', '3', '4', '5', '6']) {
-      await tester.tap(find.text(digit));
+      await tester.tap(find.bySemanticsLabel('Digit $digit'));
       await tester.pump();
     }
     expect(unlocked, isFalse);

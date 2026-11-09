@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -61,8 +61,7 @@ class ReminderService {
     await _plugin.cancelAll();
 
     // Deterministic order so notification ids are stable between syncs.
-    final sorted = docs.toList()
-      ..sort((a, b) => a.id.compareTo(b.id));
+    final sorted = docs.toList()..sort((a, b) => a.id.compareTo(b.id));
     var id = 1;
     final dateFormat = DateFormat.yMMMd();
     for (final doc in sorted) {
@@ -98,27 +97,29 @@ class ReminderService {
     }
     if (!context.mounted) return false;
 
-    final explained = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Turn on reminders'),
-        content: const Text(
-          'Document Expiry Vault sends a local notification before a document '
-          'expires — for example 90, 30, 7 and 1 day ahead. Nothing leaves '
-          'your phone: these are on-device notifications only.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Not now'),
+    final explained = await const DialogConfiguration()
+        .show<bool>(
+          context,
+          (ctx) => AlertDialog(
+            title: const Text('Turn on reminders'),
+            content: const Text(
+              'Document Expiry Vault sends a local notification before a document '
+              'expires — for example 90, 30, 7 and 1 day ahead. Nothing leaves '
+              'your phone: these are on-device notifications only.',
+            ),
+            actions: [
+              Button.ghost(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Not now'),
+              ),
+              Button.primary(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Turn on'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Turn on'),
-          ),
-        ],
-      ),
-    );
+        )
+        .future;
     if (explained != true) return false;
 
     await android.requestNotificationsPermission();
@@ -126,7 +127,8 @@ class ReminderService {
     return _ensureExactAlarm(android);
   }
 
-  Future<bool> _ensureExactAlarm(AndroidFlutterLocalNotificationsPlugin android) async {
+  Future<bool> _ensureExactAlarm(
+      AndroidFlutterLocalNotificationsPlugin android) async {
     if (await android.canScheduleExactNotifications() ?? false) return true;
     // Falls back to inexact scheduling if the user declines; reminders still
     // arrive, just not necessarily to the exact minute.

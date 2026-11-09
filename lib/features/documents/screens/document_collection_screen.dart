@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -53,15 +53,13 @@ class _DocumentCollectionScreenState
             document.status == ExpiryStatus.expired ||
             document.status == ExpiryStatus.critical).toList(growable: false)
         : visible;
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.alertsOnly ? 'Alerts' : 'All Documents'),
-        backgroundColor: scheme.surface,
-      ),
-      body: CustomScrollView(
+      headers: [
+        AppBar(
+          title: Text(widget.alertsOnly ? 'Alerts' : 'All Documents'),
+        ),
+      ],
+      child: CustomScrollView(
         keyboardDismissBehavior:
             ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
@@ -120,8 +118,8 @@ class _DocumentCollectionScreenState
               hasScrollBody: false,
               child: _EmptyState(
                 topIcon: widget.alertsOnly
-                    ? Icons.notifications_none_outlined
-                    : Icons.folder_open_outlined,
+                    ? LucideIcons.bell
+                    : LucideIcons.folderOpen,
                 title: widget.alertsOnly ? 'No active alerts' : 'No documents found',
                 message: widget.alertsOnly
                     ? 'No expired or expiring-soon documents match your filters.'
@@ -138,7 +136,7 @@ class _DocumentCollectionScreenState
                   return DocumentCard(
                     document: document,
                     onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
+                      ShadcnPageRoute<void>(
                         builder: (_) => DocumentDetailScreen(
                           documentId: document.id,
                         ),
@@ -176,15 +174,15 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(topIcon, size: 64, color: theme.colorScheme.outline),
+            Icon(topIcon, size: 64, color: theme.colorScheme.mutedForeground),
             const SizedBox(height: 16),
-            Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
+            Text(title, textAlign: TextAlign.center, style: theme.typography.large),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: theme.typography.small.copyWith(
+                color: theme.colorScheme.mutedForeground,
               ),
             ),
           ],

@@ -9,8 +9,7 @@ final settingsProvider =
     NotifierProvider<SettingsNotifier, AppSettings>(SettingsNotifier.new);
 
 class SettingsNotifier extends Notifier<AppSettings> {
-  Box<AppSettings> get _box =>
-      Hive.box<AppSettings>(HiveService.settingsBox);
+  Box<AppSettings> get _box => Hive.box<AppSettings>(HiveService.settingsBox);
 
   @override
   AppSettings build() =>

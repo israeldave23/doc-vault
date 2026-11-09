@@ -11,7 +11,7 @@ import 'package:doc_vault/features/profiles/providers/profile_providers.dart';
 import 'package:doc_vault/features/reminders/services/reminder_service.dart';
 import 'package:doc_vault/features/settings/models/app_settings.dart';
 import 'package:doc_vault/features/settings/providers/settings_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
@@ -114,7 +114,7 @@ Future<void> _pumpScreen(
         ),
         reminderServiceProvider.overrideWithValue(_ReminderService()),
       ],
-      child: MaterialApp(
+      child: ShadcnApp(
         home: AddEditDocumentScreen(existing: existing),
       ),
     ),
@@ -141,10 +141,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Photos (1/3)'), findsOneWidget);
 
+    await tester.drag(find.byType(ListView).first, const Offset(0, -1500));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
     expect(find.text('Could not save document. Please try again.'), findsOneWidget);
     expect(imageStore.deleted, isEmpty);
+
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
@@ -163,10 +168,12 @@ void main() {
       existing: existing,
     );
 
-    await tester.tap(find.byTooltip('Remove photo'));
+    await tester.tap(find.bySemanticsLabel('Remove photo'));
     await tester.pump();
     expect(imageStore.deleted, isEmpty);
 
+    await tester.drag(find.byType(ListView).first, const Offset(0, -1500));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Save changes'));
     await tester.pumpAndSettle();
     expect(imageStore.deleted, ['existing.enc']);
@@ -185,13 +192,13 @@ void main() {
       existing: existing,
     );
 
-    await tester.tap(find.byTooltip('Remove photo'));
+    await tester.tap(find.bySemanticsLabel('Remove photo'));
     await tester.pump();
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
 
     expect(imageStore.deleted, isEmpty);
-    expect(documents.state.single.imagePaths, ['existing.enc']);
+    expect(documents.documents.single.imagePaths, ['existing.enc']);
   });
 
   testWidgets('repeated save taps start only one upsert', (tester) async {
@@ -210,12 +217,17 @@ void main() {
     );
 
     final save = find.text('Save changes');
+    await tester.drag(find.byType(ListView).first, const Offset(0, -1500));
+    await tester.pumpAndSettle();
     await tester.tap(save);
     await tester.tap(save, warnIfMissed: false);
     await tester.pump();
 
     expect(documents.upsertCalls, 1);
-    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
+    expect(
+      tester.widget<Button>(find.byType(Button).last).onPressed,
+      isNull,
+    );
 
     completer.complete();
     await tester.pumpAndSettle();

@@ -136,8 +136,10 @@ class BackupService {
     if (profileIds.length != profiles.length ||
         docs.map((doc) => doc.id).toSet().length != docs.length ||
         docs.any((doc) =>
-            doc.profileId != Profile.selfId && !profileIds.contains(doc.profileId))) {
-      throw BackupException('Invalid document or profile relationships in backup.');
+            doc.profileId != Profile.selfId &&
+            !profileIds.contains(doc.profileId))) {
+      throw BackupException(
+          'Invalid document or profile relationships in backup.');
     }
     final imageNames = <String>{};
     for (final entry in decoded.images) {
@@ -148,7 +150,8 @@ class BackupService {
         throw BackupException('Invalid image filename in backup.');
       }
     }
-    if (docs.any((doc) => doc.imagePaths.any((name) => !imageNames.contains(name)))) {
+    if (docs.any(
+        (doc) => doc.imagePaths.any((name) => !imageNames.contains(name)))) {
       throw BackupException('Document references missing image in backup.');
     }
 
@@ -224,7 +227,8 @@ class BackupService {
 
     final Map<String, dynamic> json;
     try {
-      final decoded = jsonDecode(utf8.decode(decrypted.sublist(4, 4 + jsonLength)));
+      final decoded =
+          jsonDecode(utf8.decode(decrypted.sublist(4, 4 + jsonLength)));
       if (decoded is! Map<String, dynamic>) {
         throw const FormatException('not a JSON object');
       }
@@ -246,8 +250,7 @@ class BackupService {
       if (nameLength > decrypted.length - cursor) {
         throw BackupException('The backup file is damaged.');
       }
-      final name =
-          utf8.decode(decrypted.sublist(cursor, cursor + nameLength));
+      final name = utf8.decode(decrypted.sublist(cursor, cursor + nameLength));
       cursor += nameLength;
       if (cursor + 4 > decrypted.length) {
         throw BackupException('The backup file is damaged.');

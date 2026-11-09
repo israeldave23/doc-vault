@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../../../core/utils/expiry_status.dart';
 
@@ -31,7 +31,7 @@ class StatusChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             status.label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            style: Theme.of(context).typography.xSmall.copyWith(
                   color: color,
                   fontWeight: FontWeight.w600,
                 ),

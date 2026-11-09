@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -20,7 +20,7 @@ class DocumentDetailScreen extends ConsumerWidget {
     final document = ref.watch(documentByIdProvider(documentId));
     if (document == null) {
       // Deleted while open; go back gracefully.
-      return const Scaffold(body: SizedBox.shrink());
+      return const Scaffold(child: SizedBox.shrink());
     }
 
     final theme = Theme.of(context);
@@ -33,26 +33,26 @@ class DocumentDetailScreen extends ConsumerWidget {
     final dateFormat = DateFormat.yMMMMd();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(document.title),
-        actions: [
-          IconButton(
-            tooltip: 'Edit',
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => AddEditDocumentScreen(existing: document),
+      headers: [
+        AppBar(
+          title: Text(document.title),
+          trailing: [
+            IconButton.ghost(
+              icon: const Icon(LucideIcons.pencil),
+              onPressed: () => Navigator.of(context).push(
+                ShadcnPageRoute<void>(
+                  builder: (_) => AddEditDocumentScreen(existing: document),
+                ),
               ),
             ),
-          ),
-          IconButton(
-            tooltip: 'Delete',
-            icon: const Icon(Icons.delete_outline),
-            onPressed: () => _confirmDelete(context, ref),
-          ),
-        ],
-      ),
-      body: ListView(
+            IconButton.ghost(
+              icon: const Icon(LucideIcons.trash2),
+              onPressed: () => _confirmDelete(context, ref),
+            ),
+          ],
+        ),
+      ],
+      child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           if (document.imagePaths.isEmpty)
@@ -69,8 +69,8 @@ class DocumentDetailScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(
                     'No photo attached · tap Edit to scan',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    style: theme.typography.small.copyWith(
+                      color: theme.colorScheme.mutedForeground,
                     ),
                   ),
                 ],
@@ -101,7 +101,7 @@ class DocumentDetailScreen extends ConsumerWidget {
                     StatusChip(status: status),
                     Text(
                       daysRemainingLabel(document.daysRemaining),
-                      style: theme.textTheme.titleMedium?.copyWith(
+                      style: theme.typography.medium.copyWith(
                         color: status.color,
                         fontWeight: FontWeight.w700,
                       ),
@@ -116,24 +116,24 @@ class DocumentDetailScreen extends ConsumerWidget {
             title: 'Document details',
             children: [
               _InfoTile(
-                icon: Icons.category_outlined,
+                icon: LucideIcons.tags,
                 label: 'Category',
                 value: category.label,
               ),
               _InfoTile(
-                icon: Icons.event_busy,
+                icon: LucideIcons.calendarOff,
                 label: 'Expires',
                 value: dateFormat.format(document.expiryDate),
               ),
               if (document.issueDate != null)
                 _InfoTile(
-                  icon: Icons.event_available,
+                  icon: LucideIcons.calendarCheck,
                   label: 'Issued',
                   value: dateFormat.format(document.issueDate!),
                 ),
               if (document.idNumber != null)
                 _InfoTile(
-                  icon: Icons.numbers,
+                  icon: LucideIcons.hash,
                   label: 'ID number',
                   value: document.idNumber!,
                 ),
@@ -145,15 +145,15 @@ class DocumentDetailScreen extends ConsumerWidget {
             children: [
               if (profile != null)
                 _InfoTile(
-                  icon: Icons.person_outline,
+                  icon: LucideIcons.user,
                   label: 'Belongs to',
                   value:
                       '${profile.avatarEmoji == null ? '' : '${profile.avatarEmoji} '}${profile.name}',
                 ),
               _InfoTile(
                 icon: document.remindersEnabled
-                    ? Icons.notifications_active_outlined
-                    : Icons.notifications_off_outlined,
+                    ? LucideIcons.bellRing
+                    : LucideIcons.bellOff,
                 label: 'Reminders',
                 value: document.remindersEnabled
                     ? '${document.reminderDaysBefore.map((d) => d == 1 ? '1 day' : '$d days').join(', ')} before expiry'
@@ -167,7 +167,7 @@ class DocumentDetailScreen extends ConsumerWidget {
               title: 'Notes',
               children: [
                 _InfoTile(
-                  icon: Icons.notes,
+                  icon: LucideIcons.fileText,
                   label: 'Notes',
                   value: document.notes!,
                 ),
@@ -180,28 +180,25 @@ class DocumentDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
+    final confirmed = await const DialogConfiguration().show<bool>(
+      context,
+      (ctx) => AlertDialog(
         title: const Text('Delete document?'),
         content: const Text(
           'This removes the document and its encrypted photos from this device.',
         ),
         actions: [
-          TextButton(
+          Button.ghost(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-            ),
+          Button.destructive(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Delete'),
           ),
         ],
       ),
-    );
+    ).future;
     if (confirmed != true || !context.mounted) return;
     Navigator.of(context).pop();
     await ref.read(documentsProvider.notifier).remove(documentId);
@@ -245,7 +242,7 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
                 label: '$slot, encrypted photo. Tap to zoom',
                 child: GestureDetector(
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
+                    ShadcnPageRoute<void>(
                       builder: (_) => EncryptedPhotoViewerScreen(
                         title: widget.title,
                         imagePaths: paths,
@@ -276,11 +273,11 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
-                                  Icons.lock_outline,
-                                  size: 13,
-                                  color: Colors.white,
-                                ),
+                                 const Icon(
+                                   LucideIcons.lock,
+                                   size: 13,
+                                   color: Colors.white,
+                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   paths.length > 1
@@ -318,7 +315,7 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
                   decoration: BoxDecoration(
                     color: _currentIndex == i
                         ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.outlineVariant,
+                        : Theme.of(context).colorScheme.muted,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -340,7 +337,6 @@ class _DetailSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
-      margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         child: Column(
@@ -348,7 +344,7 @@ class _DetailSection extends StatelessWidget {
           children: [
             Semantics(
               header: true,
-              child: Text(title, style: theme.textTheme.titleMedium),
+              child: Text(title, style: theme.typography.medium),
             ),
             const SizedBox(height: 4),
             ...children,
@@ -375,18 +371,31 @@ class _InfoTile extends StatelessWidget {
     final theme = Theme.of(context);
     return Semantics(
       label: '$label, $value',
-      child: ListTile(
-        dense: true,
-        minLeadingWidth: 24,
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: theme.colorScheme.primary),
-        title: Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: theme.colorScheme.primary, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: theme.typography.xSmall.copyWith(
+                      color: theme.colorScheme.mutedForeground,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(value, style: theme.typography.base),
+                ],
+              ),
+            ),
+          ],
         ),
-        subtitle: Text(value, style: theme.textTheme.bodyLarge),
       ),
     );
   }

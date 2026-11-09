@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../../settings/providers/settings_provider.dart';
 import '../../settings/screens/settings_screen.dart';
 
-/// Three slides from the spec: privacy, reminders, then the lock.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -18,19 +17,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   static const _slides = <(IconData, String, String)>[
     (
-      Icons.lock_outline,
+      LucideIcons.lockKeyhole,
       'Your documents stay on your phone',
       'IDs, licenses and permits are stored encrypted on this device. '
           'No account, no server, nothing is uploaded.',
     ),
     (
-      Icons.notifications_active_outlined,
+      LucideIcons.bellRing,
       'Reminders before it is too late',
       'Get warned 90, 30, 7 and 1 day before something expires — with daily '
           'reminders through the final week.',
     ),
     (
-      Icons.fingerprint,
+      LucideIcons.fingerprint,
       'Lock it with your fingerprint',
       'Add a PIN or biometric lock so nobody who picks up your phone can open '
           'the vault.',
@@ -54,17 +53,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Rebuilds straight to the dashboard once the flag flips.
     final done = ref.watch(settingsProvider).onboardingCompleted;
     if (done) return const DashboardReplacement();
 
     return Scaffold(
-      body: SafeArea(
+      child: SafeArea(
         child: Column(
           children: [
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton(
+              child: Button.link(
                 onPressed: _finish,
                 child: const Text('Skip'),
               ),
@@ -99,16 +97,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           Text(
                             title,
                             textAlign: TextAlign.center,
-                            style: theme.textTheme.headlineSmall,
-                          ),
+                          ).h3,
                           const SizedBox(height: 16),
                           Text(
                             body,
                             textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
+                          ).small().muted(),
                         ],
                       ),
                     ),
@@ -131,7 +125,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         decoration: BoxDecoration(
                           color: _page == i
                               ? theme.colorScheme.primary
-                              : theme.colorScheme.outlineVariant,
+                              : theme.colorScheme.border,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -144,11 +138,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: _page == _slides.length - 1
-                    ? FilledButton(
+                    ? Button.primary(
                         onPressed: _finish,
                         child: const Text('Get started'),
                       )
-                    : FilledButton(
+                    : Button.primary(
                         onPressed: () => _controller.nextPage(
                           duration: const Duration(milliseconds: 250),
                           curve: Curves.easeOut,
@@ -160,9 +154,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             if (_page == _slides.length - 1)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: TextButton(
+                child: Button.link(
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
+                    ShadcnPageRoute<void>(
                         builder: (_) => const SettingsScreen()),
                   ),
                   child: const Text('Set up app lock now'),
@@ -175,8 +169,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 }
 
-/// Stand-in used while the onboarding flag flips; the app's home switches to
-/// the dashboard on the next build.
 class DashboardReplacement extends StatelessWidget {
   const DashboardReplacement({super.key});
 

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/document_providers.dart';
@@ -26,15 +26,16 @@ class EncryptedImageView extends ConsumerWidget {
         bytes,
         fit: fit,
         gaplessPlayback: true,
-        errorBuilder: (context, error, stackTrace) => _BrokenPhotoPlaceholder(scheme: scheme),
+        errorBuilder: (context, error, stackTrace) =>
+            _BrokenPhotoPlaceholder(scheme: scheme),
       ),
       loading: () => Container(
-        color: scheme.surfaceContainerHighest,
+        color: scheme.muted,
         alignment: Alignment.center,
         child: const SizedBox(
           width: 24,
           height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child: CircularProgressIndicator(),
         ),
       ),
       error: (err, stack) => _BrokenPhotoPlaceholder(scheme: scheme),
@@ -55,19 +56,19 @@ class _BrokenPhotoPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: scheme.surfaceContainerHighest,
+      color: scheme.muted,
       alignment: Alignment.center,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.broken_image_outlined, color: scheme.outline, size: 32),
+          Icon(LucideIcons.imageOff, color: scheme.mutedForeground, size: 32),
           const SizedBox(height: 4),
           Text(
             'Unable to decrypt photo',
             style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: scheme.onSurfaceVariant),
+                .typography
+                .xSmall
+                .copyWith(color: scheme.mutedForeground),
           ),
         ],
       ),
@@ -114,7 +115,8 @@ class _EncryptedPhotoViewerScreenState
   String _pageLabel(int index, int total) {
     if (total == 1) return widget.title;
     const slotNames = ['Front', 'Back', 'Page 3'];
-    final slot = index < slotNames.length ? slotNames[index] : 'Page ${index + 1}';
+    final slot =
+        index < slotNames.length ? slotNames[index] : 'Page ${index + 1}';
     return '$slot (${index + 1}/$total)';
   }
 
@@ -122,28 +124,30 @@ class _EncryptedPhotoViewerScreenState
   Widget build(BuildContext context) {
     final total = widget.imagePaths.length;
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Text(_pageLabel(_index, total)),
-      ),
-      body: PageView.builder(
-        controller: _controller,
-        itemCount: total,
-        onPageChanged: (value) => setState(() => _index = value),
-        itemBuilder: (context, i) {
-          return InteractiveViewer(
-            minScale: 0.8,
-            maxScale: 4.0,
-            child: Center(
-              child: EncryptedImageView(
-                storedPath: widget.imagePaths[i],
-                fit: BoxFit.contain,
+      headers: [
+        AppBar(
+          title: Text(_pageLabel(_index, total)),
+        ),
+      ],
+      child: Container(
+        color: Colors.black,
+        child: PageView.builder(
+          controller: _controller,
+          itemCount: total,
+          onPageChanged: (value) => setState(() => _index = value),
+          itemBuilder: (context, i) {
+            return InteractiveViewer(
+              minScale: 0.8,
+              maxScale: 4.0,
+              child: Center(
+                child: EncryptedImageView(
+                  storedPath: widget.imagePaths[i],
+                  fit: BoxFit.contain,
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
@@ -41,7 +41,7 @@ class _DocVaultAppState extends ConsumerState<DocVaultApp> {
       _ => ThemeMode.system,
     };
 
-    return MaterialApp(
+    return ShadcnApp(
       title: 'Document Vault',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
@@ -50,8 +50,6 @@ class _DocVaultAppState extends ConsumerState<DocVaultApp> {
       home: settings.onboardingCompleted
           ? const VaultShell()
           : const OnboardingScreen(),
-      // Wraps every route (home, pushed screens, dialogs) so the lock shows
-      // even when the app is backgrounded on a sub-screen.
       builder: (context, child) => LockGate(child: child ?? const SizedBox()),
     );
   }

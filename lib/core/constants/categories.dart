@@ -1,7 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
-/// Preset categories. The [key] is what gets stored in the database so labels
-/// can be renamed or localized later without migrating data.
 class DocumentCategory {
   const DocumentCategory(this.key, this.label, this.icon);
 
@@ -9,20 +7,20 @@ class DocumentCategory {
   final String label;
   final IconData icon;
 
-  static const passport = DocumentCategory('passport', 'Passport', Icons.flight_takeoff);
-  static const driversLicense = DocumentCategory('drivers_license', "Driver's License", Icons.directions_car);
-  static const nationalId = DocumentCategory('national_id', 'National ID', Icons.badge);
-  static const philhealth = DocumentCategory('philhealth', 'PhilHealth', Icons.local_hospital);
-  static const sssUmid = DocumentCategory('sss_umid', 'SSS / UMID', Icons.credit_card);
-  static const prcLicense = DocumentCategory('prc_license', 'PRC License', Icons.workspace_premium);
-  static const vehicleRegistration = DocumentCategory('vehicle_registration', 'Vehicle Registration', Icons.two_wheeler);
-  static const insurance = DocumentCategory('insurance', 'Insurance', Icons.shield);
-  static const visa = DocumentCategory('visa', 'Visa', Icons.public);
-  static const workPermit = DocumentCategory('work_permit', 'Work Permit', Icons.work);
-  static const businessPermit = DocumentCategory('business_permit', 'Business Permit', Icons.storefront);
-  static const warranty = DocumentCategory('warranty', 'Warranty', Icons.verified);
-  static const bankCard = DocumentCategory('bank_card', 'Credit / Debit Card', Icons.payment);
-  static const other = DocumentCategory('other', 'Other', Icons.description);
+  static const passport = DocumentCategory('passport', 'Passport', LucideIcons.plane);
+  static const driversLicense = DocumentCategory('drivers_license', "Driver's License", LucideIcons.car);
+  static const nationalId = DocumentCategory('national_id', 'National ID', LucideIcons.badge);
+  static const philhealth = DocumentCategory('philhealth', 'PhilHealth', LucideIcons.hospital);
+  static const sssUmid = DocumentCategory('sss_umid', 'SSS / UMID', LucideIcons.creditCard);
+  static const prcLicense = DocumentCategory('prc_license', 'PRC License', LucideIcons.award);
+  static const vehicleRegistration = DocumentCategory('vehicle_registration', 'Vehicle Registration', LucideIcons.bike);
+  static const insurance = DocumentCategory('insurance', 'Insurance', LucideIcons.shield);
+  static const visa = DocumentCategory('visa', 'Visa', LucideIcons.globe);
+  static const workPermit = DocumentCategory('work_permit', 'Work Permit', LucideIcons.briefcaseBusiness);
+  static const businessPermit = DocumentCategory('business_permit', 'Business Permit', LucideIcons.store);
+  static const warranty = DocumentCategory('warranty', 'Warranty', LucideIcons.badgeCheck);
+  static const bankCard = DocumentCategory('bank_card', 'Credit / Debit Card', LucideIcons.walletCards);
+  static const other = DocumentCategory('other', 'Other', LucideIcons.fileText);
 
   static const all = <DocumentCategory>[
     passport,
@@ -42,6 +40,6 @@ class DocumentCategory {
   ];
 
   static DocumentCategory byKey(String key) {
-    return all.firstWhere((c) => c.key == key, orElse: () => other);
+    return all.firstWhere((category) => category.key == key, orElse: () => other);
   }
 }

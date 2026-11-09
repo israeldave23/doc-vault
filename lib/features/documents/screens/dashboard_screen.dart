@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -77,8 +77,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final selectedProfile = ref.watch(selectedProfileIdProvider);
     final selectedStatus = ref.watch(statusFilterProvider);
     final settings = ref.watch(settingsProvider);
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     
     final profileDocuments = allDocuments
         .where(
@@ -104,27 +102,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final profileDisplayName = selectedProfileObj?.name ?? 'Everyone';
 
     return Scaffold(
-      body: Stack(
+      footers: [
+        if (!settings.isPro) const AdBanner(),
+      ],
+      child: Stack(
         children: [
           CustomScrollView(
             keyboardDismissBehavior:
                 ScrollViewKeyboardDismissBehavior.onDrag,
             slivers: [
-              SliverAppBar(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                scrolledUnderElevation: 0,
-                pinned: true,
-                expandedHeight: 200,
-                flexibleSpace: FlexibleSpaceBar(
-                  background: PremiumHeader(
-                    greeting: _greeting,
-                    profileName: profileDisplayName,
-                    onNotificationTap: () {},
-                    onSettingsTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const SettingsScreen(),
-                      ),
+              SliverToBoxAdapter(
+                child: PremiumHeader(
+                  greeting: _greeting,
+                  profileName: profileDisplayName,
+                  onNotificationTap: () {},
+                  onSettingsTap: () => Navigator.of(context).push(
+                    ShadcnPageRoute<void>(
+                      builder: (_) => const SettingsScreen(),
                     ),
                   ),
                 ),
@@ -211,7 +205,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   .toList(growable: false),
                               onDocumentTap: (id) =>
                                   Navigator.of(context).push(
-                                MaterialPageRoute<void>(
+                                ShadcnPageRoute<void>(
                                   builder: (_) =>
                                       DocumentDetailScreen(documentId: id),
                                 ),
@@ -237,19 +231,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       spacing: AppSpacing.sm,
                       runSpacing: AppSpacing.sm,
                       children: [
-                        OutlinedButton.icon(
+                        Button.outline(
                           onPressed: _viewAll,
-                          icon: const Icon(Icons.grid_3x3_outlined),
-                          label: const Text('Browse all'),
+                          leading: const Icon(LucideIcons.layoutGrid),
+                          child: const Text('Browse all'),
                         ),
-                        OutlinedButton.icon(
+                        Button.outline(
                           onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
+                            ShadcnPageRoute<void>(
                               builder: (_) => const ProfilesScreen(),
                             ),
                           ),
-                          icon: const Icon(Icons.people_outline),
-                          label: const Text('Manage profiles'),
+                          leading: const Icon(LucideIcons.users),
+                          child: const Text('Manage profiles'),
                         ),
                       ],
                     ),
@@ -267,7 +261,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 sliver: SliverToBoxAdapter(
                   child: _SectionHeader(
                     title: 'Your Documents',
-                    action: TextButton(
+                    action: Button.ghost(
                       onPressed: _viewAll,
                       child: const Text('View all'),
                     ),
@@ -315,7 +309,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       return DocumentCard(
                         document: document,
                         onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
+                          ShadcnPageRoute<void>(
                             builder: (_) => DocumentDetailScreen(
                               documentId: document.id,
                             ),
@@ -332,18 +326,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => const AddEditDocumentScreen(),
-          ),
-        ),
-        backgroundColor: scheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        child: const Icon(Icons.add),
-      ),
-      bottomNavigationBar: settings.isPro ? null : const AdBanner(),
     );
   }
 }
@@ -451,14 +433,22 @@ class _AnimatedHealthTile extends AnimatedWidget {
       child: Opacity(
         opacity: opacity,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('$count', style: theme.textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w800)),
+          Text('$count', style: theme.typography.large.copyWith(color: color, fontWeight: FontWeight.w800)),
           const SizedBox(height: AppSpacing.xs),
-          Text(label, textAlign: TextAlign.center, style: theme.textTheme.labelMedium),
+          Text(label, textAlign: TextAlign.center, style: theme.typography.xSmall),
         ]),
       ),
     );
     if (onTap == null) return child;
-    return Semantics(button: true, onTap: onTap, label: '$count $label', child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadii.control), child: child));
+    return Semantics(
+      button: true,
+      onTap: onTap,
+      label: '$count $label',
+      child: Button.ghost(
+        onPressed: onTap,
+        child: child,
+      ),
+    );
   }
 }
 
@@ -477,8 +467,8 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: theme.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
+          style: theme.typography.medium
+              .copyWith(fontWeight: FontWeight.w700),
         ),
         if (action != null) action!,
       ],
@@ -526,23 +516,23 @@ class _EmptyState extends StatelessWidget {
                 ? 'Add a document for this person to keep their important dates organized.'
                 : 'Try changing the selected profile or status filter.';
     final action = isEmpty
-        ? FilledButton.icon(
+        ? Button.primary(
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
+              ShadcnPageRoute<void>(
                 builder: (_) => const AddEditDocumentScreen(),
               ),
             ),
-            icon: const Icon(Icons.add),
-            label: const Text('Add your first document'),
+            leading: const Icon(LucideIcons.plus),
+            child: const Text('Add your first document'),
           )
-        : OutlinedButton.icon(
+        : Button.outline(
             onPressed: hasSearch
                 ? onClearSearch
                 : profileEmpty
                     ? onClearProfile
                     : onClearStatus,
-            icon: const Icon(Icons.filter_alt_off_outlined),
-            label: Text(hasSearch
+            leading: const Icon(LucideIcons.listFilter),
+            child: Text(hasSearch
                 ? 'Clear search'
                 : selectedProfile != null
                     ? 'Show everyone'
@@ -556,21 +546,21 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(
               isEmpty
-                  ? Icons.folder_open
+                  ? LucideIcons.folderOpen
                   : profileEmpty && !hasSearch
-                      ? Icons.person_outline
-                      : Icons.search_off,
+                      ? LucideIcons.user
+                      : LucideIcons.searchX,
               size: 64,
-              color: theme.colorScheme.outline,
+              color: theme.colorScheme.mutedForeground,
             ),
             const SizedBox(height: 16),
-            Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
+            Text(title, textAlign: TextAlign.center, style: theme.typography.large.copyWith(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: theme.typography.small.copyWith(
+                color: theme.colorScheme.mutedForeground,
               ),
             ),
             const SizedBox(height: 16),
@@ -607,11 +597,11 @@ class _PriorityAlerts extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: AppSpacing.md),
           child: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: alertColor, size: 24),
+              Icon(LucideIcons.triangleAlert, color: alertColor, size: 24),
               const SizedBox(width: AppSpacing.sm),
               Text(
                 'Needs your attention',
-                style: theme.textTheme.titleMedium?.copyWith(
+                style: theme.typography.medium.copyWith(
                   fontWeight: FontWeight.w700,
                   color: alertColor,
                 ),
@@ -627,8 +617,8 @@ class _PriorityAlerts extends StatelessWidget {
               daysLabel: daysRemainingLabel(doc.daysRemaining),
               status: doc.status,
               icon: doc.status == ExpiryStatus.expired
-                  ? Icons.error_outline
-                  : Icons.schedule_outlined,
+                  ? LucideIcons.circleAlert
+                  : LucideIcons.clock3,
               onTap: () => onDocumentTap(doc.id),
             ),
           ),
@@ -643,7 +633,6 @@ class _AllCaughtUpCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final successColor = isDark
         ? AppColors.statusOkDark
@@ -667,7 +656,7 @@ class _AllCaughtUpCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadii.control),
             ),
             child: Icon(
-              Icons.check_circle_outline,
+              LucideIcons.circleCheck,
               color: successColor,
               size: 24,
             ),
@@ -680,7 +669,7 @@ class _AllCaughtUpCard extends StatelessWidget {
               children: [
                 Text(
                   'All caught up!',
-                  style: theme.textTheme.bodyLarge?.copyWith(
+                  style: theme.typography.base.copyWith(
                     fontWeight: FontWeight.w600,
                     color: successColor,
                   ),
@@ -688,8 +677,8 @@ class _AllCaughtUpCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'No documents need your attention right now.',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                  style: theme.typography.xSmall.copyWith(
+                    color: theme.colorScheme.mutedForeground,
                   ),
                 ),
               ],

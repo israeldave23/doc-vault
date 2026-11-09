@@ -1,7 +1,8 @@
+import 'package:doc_vault/core/theme/app_theme.dart';
 import 'package:doc_vault/features/documents/models/document.dart';
 import 'package:doc_vault/features/documents/widgets/document_card.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 void main() {
   testWidgets('document card exposes one useful accessible action', (tester) async {
@@ -15,9 +16,10 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      ShadcnApp(
+        theme: AppTheme.light,
         home: Scaffold(
-          body: DocumentCard(document: document, onTap: () {}),
+          child: DocumentCard(document: document, onTap: () {}),
         ),
       ),
     );
@@ -39,10 +41,11 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      ShadcnApp(
+        theme: AppTheme.light,
         home: MediaQuery(
           data: const MediaQueryData(textScaler: TextScaler.linear(2)),
-          child: Scaffold(body: DocumentCard(document: document)),
+          child: Scaffold(child: DocumentCard(document: document)),
         ),
       ),
     );
@@ -64,10 +67,11 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      ShadcnApp(
+        theme: AppTheme.light,
         home: MediaQuery(
           data: const MediaQueryData(size: Size(280, 600)),
-          child: Scaffold(body: DocumentCard(document: document)),
+          child: Scaffold(child: DocumentCard(document: document)),
         ),
       ),
     );
@@ -88,9 +92,10 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      ShadcnApp(
+        theme: AppTheme.light,
         home: Scaffold(
-          body: DocumentCard(
+          child: DocumentCard(
             document: document,
             onTap: () => tapped = true,
           ),
@@ -115,11 +120,11 @@ void main() {
 
     for (final mode in [ThemeMode.light, ThemeMode.dark]) {
       await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(brightness: Brightness.light),
-          darkTheme: ThemeData(brightness: Brightness.dark),
+        ShadcnApp(
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
           themeMode: mode,
-          home: Scaffold(body: DocumentCard(document: document)),
+          home: Scaffold(child: DocumentCard(document: document)),
         ),
       );
       expect(find.byType(DocumentCard), findsOneWidget);
