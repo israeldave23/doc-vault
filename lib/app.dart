@@ -46,7 +46,7 @@ class _DocVaultAppState extends ConsumerState<DocVaultApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.light,
+      themeMode: themeMode,
       home: settings.onboardingCompleted
           ? const VaultShell()
           : const OnboardingScreen(),

@@ -562,26 +562,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _HealthTile extends StatelessWidget {
-  const _HealthTile({required this.label, required this.count, required this.color, this.onTap});
-  final String label;
-  final int count;
-  final Color color;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final child = Column(mainAxisSize: MainAxisSize.min, children: [
-      Text('$count', style: theme.textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w800)),
-      const SizedBox(height: AppSpacing.xs),
-      Text(label, textAlign: TextAlign.center, style: theme.textTheme.labelMedium),
-    ]);
-    if (onTap == null) return child;
-    return Semantics(button: true, onTap: onTap, label: '$count $label', child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadii.control), child: child));
-  }
-}
-
 class _PriorityAlerts extends StatelessWidget {
   const _PriorityAlerts({super.key, required this.documents, required this.onDocumentTap});
   final List<Document> documents;

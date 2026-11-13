@@ -42,7 +42,7 @@ class _VaultShellState extends State<VaultShell> {
           children: _destinations,
         ),
         bottomNavigationBar: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(
               top: BorderSide(color: Color(0xFFEDEDED), width: 1),
@@ -54,7 +54,7 @@ class _VaultShellState extends State<VaultShell> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             height: 60,
-            indicatorColor: Color(0xFFF5F7FF),
+            indicatorColor: const Color(0xFFF5F7FF),
             onDestinationSelected: (index) {
               FocusManager.instance.primaryFocus?.unfocus();
               setState(() => _selectedIndex = index);
