@@ -664,22 +664,25 @@ class VaultStatusFilters extends ConsumerWidget {
           for (final option in options)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(option.$3 == 0
-                    ? option.$1
-                    : '${option.$1} (${option.$3})'),
-                selected: selectedStatus == option.$2,
-                showCheckmark: false,
-                selectedColor: option.$4.withValues(alpha: 0.14),
-                labelStyle: TextStyle(
-                  color: selectedStatus == option.$2
-                      ? option.$4
-                      : Theme.of(context).colorScheme.onSurface,
-                ),
-                onSelected: (_) => ref
-                    .read(statusFilterProvider.notifier)
-                    .select(option.$2),
-              ),
+               child: Semantics(
+                 label: option.$2?.label ?? 'All documents',
+                 child: FilterChip(
+                   label: Text(option.$3 == 0
+                       ? option.$1
+                       : '${option.$1} (${option.$3})'),
+                   selected: selectedStatus == option.$2,
+                   showCheckmark: false,
+                   selectedColor: option.$4.withValues(alpha: 0.14),
+                   labelStyle: TextStyle(
+                     color: selectedStatus == option.$2
+                         ? option.$4
+                         : Theme.of(context).colorScheme.onSurface,
+                   ),
+                   onSelected: (_) => ref
+                       .read(statusFilterProvider.notifier)
+                       .select(option.$2),
+                 ),
+               ),
             ),
         ],
       ),
