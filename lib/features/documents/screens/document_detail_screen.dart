@@ -1,9 +1,12 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/categories.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/expiry_status.dart';
+import '../../../core/widgets/section_label.dart';
 import '../../profiles/providers/profile_providers.dart';
 import '../providers/document_providers.dart';
 import '../widgets/encrypted_image_view.dart';
@@ -24,6 +27,7 @@ class DocumentDetailScreen extends ConsumerWidget {
     }
 
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final category = DocumentCategory.byKey(document.category);
     final status = document.status;
     final profile = ref
@@ -34,7 +38,11 @@ class DocumentDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(document.title),
+        title: Text(
+          document.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           IconButton(
             tooltip: 'Edit',
@@ -50,28 +58,47 @@ class DocumentDetailScreen extends ConsumerWidget {
             icon: const Icon(Icons.delete_outline),
             onPressed: () => _confirmDelete(context, ref),
           ),
+          const SizedBox(width: AppSpacing.sm),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.gutter,
+          AppSpacing.sm,
+          AppSpacing.gutter,
+          AppSpacing.xl + AppSpacing.md,
+        ),
         children: [
           if (document.imagePaths.isEmpty)
             Container(
-              height: 180,
+              height: 156,
               decoration: BoxDecoration(
-                color: status.color.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(20),
+                color: scheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(AppRadii.card),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(category.icon, size: 64, color: status.color),
-                  const SizedBox(height: 8),
+                  Icon(
+                    category.icon,
+                    size: 30,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
-                    'No photo attached · tap Edit to scan',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    'No photo on file',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
                     ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => AddEditDocumentScreen(existing: document),
+                      ),
+                    ),
+                    child: const Text('Add a photo'),
                   ),
                 ],
               ),
@@ -81,97 +108,80 @@ class DocumentDetailScreen extends ConsumerWidget {
               title: document.title,
               imagePaths: document.imagePaths,
             ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.md),
           Semantics(
             label:
                 '${status.label}. ${daysRemainingLabel(document.daysRemaining)}',
             child: ExcludeSemantics(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: status.color.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: [
-                    StatusChip(status: status),
-                    Text(
-                      daysRemainingLabel(document.daysRemaining),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: status.color,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
+              child: _StatusPanel(
+                status: status,
+                daysRemaining: document.daysRemaining,
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          _DetailSection(
-            title: 'Document details',
-            children: [
-              _InfoTile(
-                icon: Icons.category_outlined,
-                label: 'Category',
-                value: category.label,
-              ),
-              _InfoTile(
-                icon: Icons.event_busy,
-                label: 'Expires',
-                value: dateFormat.format(document.expiryDate),
-              ),
-              if (document.issueDate != null)
-                _InfoTile(
-                  icon: Icons.event_available,
-                  label: 'Issued',
-                  value: dateFormat.format(document.issueDate!),
-                ),
-              if (document.idNumber != null)
-                _InfoTile(
-                  icon: Icons.numbers,
-                  label: 'ID number',
-                  value: document.idNumber!,
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _DetailSection(
-            title: 'Ownership & reminders',
-            children: [
-              if (profile != null)
-                _InfoTile(
-                  icon: Icons.person_outline,
-                  label: 'Belongs to',
-                  value:
-                      '${profile.avatarEmoji == null ? '' : '${profile.avatarEmoji} '}${profile.name}',
-                ),
-              _InfoTile(
-                icon: document.remindersEnabled
-                    ? Icons.notifications_active_outlined
-                    : Icons.notifications_off_outlined,
-                label: 'Reminders',
-                value: document.remindersEnabled
-                    ? '${document.reminderDaysBefore.map((d) => d == 1 ? '1 day' : '$d days').join(', ')} before expiry'
-                    : 'Off',
-              ),
-            ],
-          ),
-          if (document.notes != null && document.notes!.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _DetailSection(
-              title: 'Notes',
+          const SizedBox(height: AppSpacing.lg),
+          const SectionLabel('Document'),
+          const SizedBox(height: AppSpacing.sm + 2),
+          Card(
+            child: Column(
               children: [
-                _InfoTile(
-                  icon: Icons.notes,
-                  label: 'Notes',
-                  value: document.notes!,
+                _SpecRow(label: 'Category', value: category.label),
+                const _SpecDivider(),
+                _SpecRow(
+                  label: 'Expires',
+                  value: dateFormat.format(document.expiryDate),
+                ),
+                if (document.issueDate != null) ...[
+                  const _SpecDivider(),
+                  _SpecRow(
+                    label: 'Issued',
+                    value: dateFormat.format(document.issueDate!),
+                  ),
+                ],
+                if (document.idNumber != null) ...[
+                  const _SpecDivider(),
+                  _SpecRow(label: 'ID number', value: document.idNumber!),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          const SectionLabel('Owner and reminders'),
+          const SizedBox(height: AppSpacing.sm + 2),
+          Card(
+            child: Column(
+              children: [
+                if (profile != null) ...[
+                  _SpecRow(
+                    label: 'Belongs to',
+                    value:
+                        '${profile.avatarEmoji == null ? '' : '${profile.avatarEmoji} '}${profile.name}',
+                  ),
+                  const _SpecDivider(),
+                ],
+                _SpecRow(
+                  label: 'Reminders',
+                  value: document.remindersEnabled
+                      ? document.reminderDaysBefore
+                          .map((d) => d == 1 ? '1 day' : '$d days')
+                          .join(' · ')
+                      : 'Off',
                 ),
               ],
+            ),
+          ),
+          if (document.notes != null && document.notes!.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            const SectionLabel('Notes'),
+            const SizedBox(height: AppSpacing.sm + 2),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Text(
+                  document.notes!,
+                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+                ),
+              ),
             ),
           ],
         ],
@@ -195,6 +205,7 @@ class DocumentDetailScreen extends ConsumerWidget {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Delete'),
@@ -206,6 +217,108 @@ class DocumentDetailScreen extends ConsumerWidget {
     Navigator.of(context).pop();
     await ref.read(documentsProvider.notifier).remove(documentId);
   }
+}
+
+/// Status and countdown in one quiet band.
+class _StatusPanel extends StatelessWidget {
+  const _StatusPanel({
+    required this.status,
+    required this.daysRemaining,
+  });
+
+  final ExpiryStatus status;
+  final int daysRemaining;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = status.colorFor(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md - 2,
+        AppSpacing.sm + 4,
+        AppSpacing.md,
+        AppSpacing.sm + 4,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: AppSpacing.md,
+        runSpacing: AppSpacing.sm,
+        children: [
+          StatusChip(status: status),
+          Text(
+            daysRemainingLabel(daysRemaining),
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpecRow extends StatelessWidget {
+  const _SpecRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: '$label, $value',
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 13,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 104,
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  value,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SpecDivider extends StatelessWidget {
+  const _SpecDivider();
+
+  @override
+  Widget build(BuildContext context) => const Divider(
+        indent: AppSpacing.md,
+        endIndent: AppSpacing.md,
+      );
 }
 
 class _DocumentPhotosCarousel extends StatefulWidget {
@@ -229,10 +342,11 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
   @override
   Widget build(BuildContext context) {
     final paths = widget.imagePaths;
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         SizedBox(
-          height: 220,
+          height: 224,
           child: PageView.builder(
             itemCount: paths.length,
             onPageChanged: (index) => setState(() => _currentIndex = index),
@@ -259,18 +373,18 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
                       children: [
                         EncryptedImageView(
                           storedPath: paths[index],
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(AppRadii.card),
                         ),
                         Positioned(
-                          left: 12,
-                          bottom: 12,
+                          left: 10,
+                          bottom: 10,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
+                              horizontal: 9,
+                              vertical: 5,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.65),
+                              color: const Color(0xCC101214),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Row(
@@ -278,18 +392,19 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
                               children: [
                                 const Icon(
                                   Icons.lock_outline,
-                                  size: 13,
+                                  size: 12,
                                   color: Colors.white,
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: 5),
                                 Text(
                                   paths.length > 1
-                                      ? '$slot (${index + 1}/${paths.length}) · Tap to zoom'
+                                      ? '$slot · ${index + 1}/${paths.length}'
                                       : 'Encrypted · Tap to zoom',
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 12,
+                                    fontSize: 11,
                                     fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.2,
                                   ),
                                 ),
                               ],
@@ -305,20 +420,20 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
           ),
         ),
         if (paths.length > 1) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSpacing.sm + 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               for (var i = 0; i < paths.length; i++)
                 AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _currentIndex == i ? 18 : 7,
-                  height: 7,
+                  duration: AppMotion.fast,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: _currentIndex == i ? 16 : 6,
+                  height: 6,
                   decoration: BoxDecoration(
                     color: _currentIndex == i
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.outlineVariant,
+                        ? scheme.primary
+                        : scheme.outlineVariant,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -326,68 +441,6 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _DetailSection extends StatelessWidget {
-  const _DetailSection({required this.title, required this.children});
-
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Semantics(
-              header: true,
-              child: Text(title, style: theme.textTheme.titleMedium),
-            ),
-            const SizedBox(height: 4),
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Semantics(
-      label: '$label, $value',
-      child: ListTile(
-        dense: true,
-        minLeadingWidth: 24,
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(icon, color: theme.colorScheme.primary),
-        title: Text(
-          label,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        subtitle: Text(value, style: theme.textTheme.bodyLarge),
-      ),
     );
   }
 }

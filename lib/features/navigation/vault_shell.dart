@@ -27,9 +27,6 @@ class _VaultShellState extends State<VaultShell> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final navBarBorder = scheme.outlineVariant;
-    final navBarIndicator = scheme.primaryContainer;
-    final navBarSelectedIcon = scheme.primary;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -45,43 +42,38 @@ class _VaultShellState extends State<VaultShell> {
           index: _selectedIndex,
           children: _destinations,
         ),
-        bottomNavigationBar: Container(
+        bottomNavigationBar: DecoratedBox(
           decoration: BoxDecoration(
             color: scheme.surface,
             border: Border(
-              top: BorderSide(color: navBarBorder, width: 1),
+              top: BorderSide(color: scheme.outlineVariant, width: 1),
             ),
           ),
           child: NavigationBar(
             selectedIndex: _selectedIndex,
-            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            height: 60,
-            indicatorColor: navBarIndicator,
             onDestinationSelected: (index) {
               FocusManager.instance.primaryFocus?.unfocus();
               setState(() => _selectedIndex = index);
             },
-            destinations: [
+            destinations: const [
               NavigationDestination(
-                icon: const Icon(Icons.grid_view_outlined),
-                selectedIcon: Icon(Icons.grid_view_rounded, color: navBarSelectedIcon),
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded),
                 label: 'Vault',
               ),
               NavigationDestination(
-                icon: const Icon(Icons.description_outlined),
-                selectedIcon: Icon(Icons.description_rounded, color: navBarSelectedIcon),
-                label: 'Docs',
+                icon: Icon(Icons.folder_outlined),
+                selectedIcon: Icon(Icons.folder_rounded),
+                label: 'Documents',
               ),
               NavigationDestination(
-                icon: const Icon(Icons.notifications_none_outlined),
-                selectedIcon: Icon(Icons.notifications_rounded, color: navBarSelectedIcon),
+                icon: Icon(Icons.notifications_none_rounded),
+                selectedIcon: Icon(Icons.notifications_rounded),
                 label: 'Alerts',
               ),
               NavigationDestination(
-                icon: const Icon(Icons.tune_outlined),
-                selectedIcon: Icon(Icons.tune_rounded, color: navBarSelectedIcon),
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings_rounded),
                 label: 'Settings',
               ),
             ],

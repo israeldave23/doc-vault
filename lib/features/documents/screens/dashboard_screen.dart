@@ -1,19 +1,23 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/expiry_status.dart';
+import '../../../core/widgets/section_label.dart';
 import '../../ads/widgets/ad_banner.dart';
 import '../../profiles/models/profile.dart';
 import '../../profiles/providers/profile_providers.dart';
 import '../../profiles/screens/profiles_screen.dart';
 import '../../settings/providers/settings_provider.dart';
-import '../../settings/screens/settings_screen.dart';
 import '../models/document.dart';
 import '../providers/document_providers.dart';
 import '../widgets/document_card.dart';
 import 'add_edit_document_screen.dart';
 import 'document_detail_screen.dart';
+
+const _tabular = <FontFeature>[FontFeature.tabularFigures()];
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -45,12 +49,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     setState(() {});
   }
 
-  void _viewAll() {
-    _clearSearch();
-    ref.read(selectedProfileIdProvider.notifier).select(null);
-    ref.read(statusFilterProvider.notifier).select(null);
-  }
-
   String get _greeting {
     final hour = DateTime.now().hour;
     if (hour >= 5 && hour < 12) return 'Good morning';
@@ -72,6 +70,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final settings = ref.watch(settingsProvider);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+
     final profileDocuments = allDocuments
         .where(
           (document) =>
@@ -81,85 +80,91 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final expiredCount = profileDocuments
         .where((document) => document.status == ExpiryStatus.expired)
         .length;
-    final expiringCount = profileDocuments
+    final criticalCount = profileDocuments
         .where((document) => document.status == ExpiryStatus.critical)
+        .length;
+    final warningCount = profileDocuments
+        .where((document) => document.status == ExpiryStatus.warning)
         .length;
     final validCount = profileDocuments
         .where((document) => document.status == ExpiryStatus.ok)
         .length;
+    final needsAttention = expiredCount + criticalCount;
 
     return Scaffold(
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-           SliverAppBar(
-             backgroundColor: Colors.transparent,
-             elevation: 0,
-             scrolledUnderElevation: 0,
-             pinned: false,
-             titleSpacing: 0,
-             title: Padding(
-               padding: const EdgeInsets.only(left: AppSpacing.md),
-               child: Row(
-                 children: [
-                   Container(
-                     width: 44,
-                     height: 44,
-                     decoration: BoxDecoration(
-                       color: scheme.primary.withValues(alpha: 0.08),
-                       borderRadius: BorderRadius.circular(AppRadii.control),
-                     ),
-                     child: Icon(
-                       Icons.shield_outlined,
-                       color: scheme.primary,
-                       size: 22,
-                     ),
-                   ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _greeting,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          'Document Vault',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontSize: 22,
-                            height: 1.25,
-                          ),
-                        ),
-                      ],
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                AppSpacing.md,
+                AppSpacing.gutter,
+                0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    DateFormat('EEEE, d MMMM')
+                        .format(DateTime.now())
+                        .toUpperCase(),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      letterSpacing: 1.4,
                     ),
                   ),
-                   IconButton(
-                     tooltip: 'Settings',
-                     icon: const Icon(Icons.tune_outlined),
-                     onPressed: () => Navigator.of(context).push(
-                       MaterialPageRoute<void>(
-                         builder: (_) => const SettingsScreen(),
-                       ),
-                     ),
-                   ),
+                  const SizedBox(height: 6),
+                  Text(_greeting, style: theme.textTheme.headlineLarge),
                 ],
               ),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              0,
+          if (profileDocuments.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                AppSpacing.md,
+                AppSpacing.gutter,
+                0,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: _VaultHealthCard(
+                  total: profileDocuments.length,
+                  needsAttention: needsAttention,
+                  valid: validCount,
+                  parts: [
+                    (
+                      expiredCount,
+                      ExpiryStatus.expired.colorFor(context),
+                      'expired',
+                    ),
+                    (
+                      criticalCount,
+                      ExpiryStatus.critical.colorFor(context),
+                      'expiring soon',
+                    ),
+                    (
+                      warningCount,
+                      ExpiryStatus.warning.colorFor(context),
+                      'renew soon',
+                    ),
+                    (validCount, ExpiryStatus.ok.colorFor(context), 'valid'),
+                  ],
+                ),
+              ),
             ),
-            sliver: SliverToBoxAdapter(
-              child: TextField(
+          if (allDocuments.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                AppSpacing.sm + 4,
+                AppSpacing.gutter,
+                0,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: TextField(
                 controller: _searchController,
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => FocusScope.of(context).unfocus(),
@@ -167,125 +172,68 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ref.read(searchQueryProvider.notifier).update(value);
                   setState(() {});
                 },
-                decoration: InputDecoration(
-                  hintText: 'Search your documents...',
-                  prefixIcon: const Icon(Icons.search),
+                decoration: AppInputStyles.search(
+                  context,
+                  hint: 'Search documents',
+                  prefixIcon: const Icon(Icons.search, size: 20),
                   suffixIcon: _searchController.text.isEmpty
                       ? null
                       : IconButton(
                           tooltip: 'Clear search',
-                          icon: const Icon(Icons.close),
+                          icon: const Icon(Icons.close, size: 18),
                           onPressed: _clearSearch,
                         ),
                 ),
               ),
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: VaultProfileSelector(
-                profiles: profiles,
-                selectedProfile: selectedProfile,
-              ),
-            ),
-          ),
-          if (allDocuments.isNotEmpty) ...[
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              sliver: SliverToBoxAdapter(
-               child: _AnimatedHealthOverview(
-                   total: profileDocuments.length,
-                   valid: validCount,
-                   expired: expiredCount,
-                   expiring: expiringCount,
-                   onTap: (status) {
-                     _clearSearch();
-                     ref.read(statusFilterProvider.notifier).select(status);
-                   },
-                 ),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
-              sliver: SliverToBoxAdapter(
-                child: AnimatedSwitcher(
-                  duration: MediaQuery.disableAnimationsOf(context)
-                      ? Duration.zero
-                      : const Duration(milliseconds: 200),
-                  child: expiredCount + expiringCount > 0
-                      ? _PriorityAlerts(
-                          key: const ValueKey('priority'),
-                          documents: profileDocuments
-                              .where((document) =>
-                                  document.status == ExpiryStatus.expired ||
-                                  document.status == ExpiryStatus.critical)
-                              .take(3)
-                              .toList(growable: false),
-                          onDocumentTap: (id) => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  DocumentDetailScreen(documentId: id),
-                            ),
-                          ),
-                        )
-                      : const _AllCaughtUpCard(key: ValueKey('caught-up')),
-                ),
-              ),
-            ),
-          ],
           if (allDocuments.isNotEmpty)
             SliverToBoxAdapter(
               child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
-              child: Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                   OutlinedButton.icon(
-                     onPressed: _viewAll,
-                     icon: const Icon(Icons.grid_3x3_outlined),
-                     label: const Text('Browse all'),
-                   ),
-                   OutlinedButton.icon(
-                     onPressed: () => Navigator.of(context).push(
-                       MaterialPageRoute<void>(
-                         builder: (_) => const ProfilesScreen(),
-                       ),
-                     ),
-                     icon: const Icon(Icons.people_outline),
-                     label: const Text('Manage profiles'),
-                   ),
-                ],
-              ),
-            ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.xs, AppSpacing.lg, 0),
-            sliver: SliverToBoxAdapter(
-              child: _SectionHeader(
-                title: 'Your Documents',
-                action: TextButton(
-                  onPressed: _viewAll,
-                  child: const Text('View all'),
+                padding: const EdgeInsets.only(
+                  left: AppSpacing.gutter,
+                  top: AppSpacing.sm + 4,
                 ),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(
-                  left: AppSpacing.lg,
-                  top: AppSpacing.xs,
-                  bottom: AppSpacing.md),
-              child: VaultStatusFilters(
+                child: VaultStatusFilters(
                 selectedStatus: selectedStatus,
                 documents: allDocuments,
                 selectedProfile: selectedProfile,
+              ),
+            ),
+          ),
+          if (allDocuments.isNotEmpty && profiles.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.gutter,
+                  AppSpacing.sm + 4,
+                  AppSpacing.gutter,
+                  0,
+                ),
+                child: VaultProfileSelector(
+                  profiles: profiles,
+                  selectedProfile: selectedProfile,
+                ),
+              ),
+            ),
+          if (allDocuments.isNotEmpty)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                AppSpacing.md + 4,
+                AppSpacing.gutter,
+                AppSpacing.sm + 2,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: SectionLabel(
+                'Documents',
+                trailing: Text(
+                  '${profileDocuments.length}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontFeatures: _tabular,
+                  ),
+                ),
               ),
             ),
           ),
@@ -298,17 +246,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 selectedStatus: selectedStatus,
                 hasSearch: _searchController.text.trim().isNotEmpty,
                 onClearSearch: _clearSearch,
-                onClearProfile: () => ref
-                    .read(selectedProfileIdProvider.notifier)
-                    .select(null),
-                onClearStatus: () => ref
-                    .read(statusFilterProvider.notifier)
-                    .select(null),
+                onClearProfile: () =>
+                    ref.read(selectedProfileIdProvider.notifier).select(null),
+                onClearStatus: () =>
+                    ref.read(statusFilterProvider.notifier).select(null),
               ),
             )
           else
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.gutter,
+              ),
               sliver: SliverList.separated(
                 itemCount: documents.length,
                 itemBuilder: (context, index) {
@@ -324,25 +272,155 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   );
                 },
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
               ),
             ),
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const AddEditDocumentScreen()),
-        ),
-        tooltip: 'Add document',
-        icon: const Icon(Icons.add),
-        label: const Text('Add document'),
-      ),
+      // On a brand-new vault the empty state owns the single call to action.
+      floatingActionButton: allDocuments.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AddEditDocumentScreen(),
+                ),
+              ),
+              tooltip: 'Add document',
+              icon: const Icon(Icons.add, size: 20),
+              label: const Text('Add document'),
+            ),
       bottomNavigationBar: settings.isPro ? null : const AdBanner(),
     );
   }
 }
 
+/// One object that answers "how is my vault doing?" and doubles as the status
+/// filter, replacing the four-tile counter grid and the separate chip row.
+class _VaultHealthCard extends StatelessWidget {
+  const _VaultHealthCard({
+    required this.total,
+    required this.needsAttention,
+    required this.valid,
+    required this.parts,
+  });
+
+  /// (count, colour, spoken label) in severity order.
+  final List<(int, Color, String)> parts;
+  final int total;
+  final int needsAttention;
+  final int valid;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final ok = needsAttention == 0;
+    final headline = ok
+        ? 'All current'
+        : needsAttention == 1
+            ? 'Needs attention'
+            : 'Need attention';
+    final detail = ok
+        ? '$total ${total == 1 ? 'document' : 'documents'} in the vault'
+        : '$total in the vault · $valid valid';
+    final spoken = parts
+        .where((part) => part.$1 > 0)
+        .map((part) => '${part.$1} ${part.$3}')
+        .join(', ');
+
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            label: spoken.isEmpty ? 'No documents yet' : spoken,
+            child: _HealthBar(parts: parts),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.sm + 6,
+              AppSpacing.md,
+              AppSpacing.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SectionLabel('Vault status'),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Text(
+                      '$needsAttention',
+                      style: theme.textTheme.displayLarge?.copyWith(
+                        color: ok
+                            ? ExpiryStatus.ok.colorFor(context)
+                            : ExpiryStatus.expired.colorFor(context),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(headline, style: theme.textTheme.titleMedium),
+                          const SizedBox(height: 2),
+                          Text(
+                            detail,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Proportional status bar that forms the top edge of the vault card.
+class _HealthBar extends StatelessWidget {
+  const _HealthBar({required this.parts});
+
+  final List<(int, Color, String)> parts;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final visible = parts.where((part) => part.$1 > 0).toList(growable: false);
+    return SizedBox(
+      height: 6,
+      child: visible.isEmpty
+          ? ColoredBox(color: scheme.surfaceContainerHighest)
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < visible.length; i++)
+                  Expanded(
+                    flex: visible[i].$1,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: i == visible.length - 1 ? 0 : 3,
+                      ),
+                      child: ColoredBox(color: visible[i].$2),
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+/// Scope selector: "Everyone" plus one pill per person.
 class VaultProfileSelector extends ConsumerWidget {
   const VaultProfileSelector({
     super.key,
@@ -355,44 +433,41 @@ class VaultProfileSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SizedBox(
-      height: 32 + MediaQuery.textScalerOf(context).scale(20),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
         children: [
-          _ProfileChip(
+          _ProfilePill(
             label: 'Everyone',
             selected: selectedProfile == null,
-            onTap: () => ref
-                .read(selectedProfileIdProvider.notifier)
-                .select(null),
+            onTap: () =>
+                ref.read(selectedProfileIdProvider.notifier).select(null),
           ),
           for (final profile in profiles)
-            _ProfileChip(
+            _ProfilePill(
               label: '${profile.avatarEmoji ?? ''} ${profile.name}'.trim(),
               selected: selectedProfile == profile.id,
               onTap: () => ref
                   .read(selectedProfileIdProvider.notifier)
                   .select(profile.id),
             ),
-          _ProfileChip(
+          _ProfilePill(
             label: 'Manage',
-            icon: Icons.manage_accounts_outlined,
+            icon: Icons.people_outline,
             selected: false,
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const ProfilesScreen(),
-              ),
+              MaterialPageRoute<void>(builder: (_) => const ProfilesScreen()),
             ),
           ),
+          const SizedBox(width: AppSpacing.xs),
         ],
       ),
     );
   }
 }
 
-class _ProfileChip extends StatelessWidget {
-  const _ProfileChip({
+class _ProfilePill extends StatelessWidget {
+  const _ProfilePill({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -406,216 +481,44 @@ class _ProfileChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        avatar: icon == null ? null : Icon(icon, size: 18),
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
-        showCheckmark: false,
-        selectedColor: scheme.primaryContainer,
-        labelStyle: TextStyle(
-          color: selected ? scheme.onPrimaryContainer : scheme.onSurface,
-        ),
-      ),
-    );
-  }
-}
-
-class _AnimatedHealthOverview extends StatefulWidget {
-  const _AnimatedHealthOverview({
-    required this.total,
-    required this.valid,
-    required this.expired,
-    required this.expiring,
-    required this.onTap,
-  });
-
-  final int total;
-  final int valid;
-  final int expired;
-  final int expiring;
-  final void Function(ExpiryStatus?) onTap;
-
-  @override
-  State<_AnimatedHealthOverview> createState() => _AnimatedHealthOverviewState();
-}
-
-class _AnimatedHealthOverviewState extends State<_AnimatedHealthOverview>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    )..forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final tiles = <(String, int, Color, ExpiryStatus?)>[
-      ('Total', widget.total, scheme.primary, null),
-      ('Valid', widget.valid, ExpiryStatus.ok.colorFor(context), ExpiryStatus.ok),
-      ('Expiring', widget.expiring,
-          ExpiryStatus.critical.colorFor(context), ExpiryStatus.critical),
-      ('Expired', widget.expired,
-          ExpiryStatus.expired.colorFor(context), ExpiryStatus.expired),
-    ];
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            for (var i = 0; i < tiles.length; i++)
-              Expanded(
-                child: _AnimatedHealthTile(
-                  label: tiles[i].$1,
-                  count: tiles[i].$2,
-                  color: tiles[i].$3,
-                  onTap: tiles[i].$4 == null ? null : () => widget.onTap(tiles[i].$4),
-                  animation: Tween<double>(begin: 0, end: 1).animate(
-                    CurvedAnimation(
-                      parent: _controller,
-                      curve: Interval(i * 0.1, 0.4 + i * 0.1, curve: Curves.easeOut),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AnimatedHealthTile extends AnimatedWidget {
-  const _AnimatedHealthTile({
-    required this.label,
-    required this.count,
-    required this.color,
-    required this.onTap,
-    required Animation<double> animation,
-  }) : super(listenable: animation);
-
-  final String label;
-  final int count;
-  final Color color;
-  final VoidCallback? onTap;
-
-  Animation<double> get animation => listenable as Animation<double>;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final opacity = animation.value;
-    final scale = 0.8 + (animation.value * 0.2);
-    final child = Transform.scale(
-      scale: scale,
-      alignment: Alignment.center,
-      child: Opacity(
-        opacity: opacity,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('$count', style: theme.textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w800)),
-          const SizedBox(height: AppSpacing.xs),
-          Text(label, textAlign: TextAlign.center, style: theme.textTheme.labelMedium),
-        ]),
-      ),
-    );
-    if (onTap == null) return child;
-    return Semantics(button: true, onTap: onTap, label: '$count $label', child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadii.control), child: child));
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.action});
-
-  final String title;
-  final Widget? action;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          title,
-          style: theme.textTheme.titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        if (action != null) action!,
-      ],
-    );
-  }
-}
-
-class _PriorityAlerts extends StatelessWidget {
-  const _PriorityAlerts({super.key, required this.documents, required this.onDocumentTap});
-  final List<Document> documents;
-  final ValueChanged<String> onDocumentTap;
-
-  @override
-  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return Card(
-      color: scheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer), const SizedBox(width: AppSpacing.sm), Text('Needs your attention', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: scheme.onErrorContainer))]),
-          const SizedBox(height: AppSpacing.sm),
-          for (var i = 0; i < documents.length; i++) ...[
-            if (i > 0) const Divider(height: AppSpacing.md),
-            _PriorityRow(document: documents[i], onTap: () => onDocumentTap(documents[i].id)),
-          ],
-        ]),
-      ),
-    );
-  }
-}
-
-class _PriorityRow extends StatelessWidget {
-  const _PriorityRow({required this.document, required this.onTap});
-  final Document document;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = document.status.colorFor(context);
-    return Semantics(
-      button: true,
-      onTap: onTap,
-      label: '${document.title}, ${document.status.label}, ${daysRemainingLabel(document.daysRemaining)}',
-      child: ExcludeSemantics(
+    final foreground = selected ? scheme.onPrimary : scheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.sm),
+      child: Material(
+        color: selected ? scheme.primary : Colors.transparent,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: selected ? scheme.primary : scheme.outlineVariant,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadii.control),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-            child: Row(children: [
-              Icon(document.status == ExpiryStatus.expired ? Icons.error_outline : Icons.schedule, color: color, size: 20),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(document.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                Text(daysRemainingLabel(document.daysRemaining), style: theme.textTheme.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w600)),
-              ])),
-              Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.outline),
-            ]),
+            padding: EdgeInsets.fromLTRB(
+              icon == null ? 14 : 10,
+              9,
+              14,
+              9,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 15, color: foreground),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: foreground,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -623,6 +526,8 @@ class _PriorityRow extends StatelessWidget {
   }
 }
 
+/// Status filter rendered as legend pills. It sits inside the vault-status card
+/// so the legend and the filter are the same object.
 class VaultStatusFilters extends ConsumerWidget {
   const VaultStatusFilters({
     super.key,
@@ -637,6 +542,7 @@ class VaultStatusFilters extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final filtered = documents.where(
       (document) =>
           selectedProfile == null || document.profileId == selectedProfile,
@@ -646,45 +552,124 @@ class VaultStatusFilters extends ConsumerWidget {
         status: filtered.where((document) => document.status == status).length,
     };
     final options = <(String, ExpiryStatus?, int, Color)>[
-      ('All', null, filtered.length, Theme.of(context).colorScheme.primary),
-      ('Expired', ExpiryStatus.expired, counts[ExpiryStatus.expired]!,
-          ExpiryStatus.expired.colorFor(context)),
-      ('Expiring soon', ExpiryStatus.critical, counts[ExpiryStatus.critical]!,
-          ExpiryStatus.critical.colorFor(context)),
-      ('Renew soon', ExpiryStatus.warning, counts[ExpiryStatus.warning]!,
-          ExpiryStatus.warning.colorFor(context)),
-      ('Valid', ExpiryStatus.ok, counts[ExpiryStatus.ok]!,
-          ExpiryStatus.ok.colorFor(context)),
+      ('All', null, filtered.length, scheme.primary),
+      (
+        'Expired',
+        ExpiryStatus.expired,
+        counts[ExpiryStatus.expired]!,
+        ExpiryStatus.expired.colorFor(context),
+      ),
+      (
+        'Expiring',
+        ExpiryStatus.critical,
+        counts[ExpiryStatus.critical]!,
+        ExpiryStatus.critical.colorFor(context),
+      ),
+      (
+        'Renew',
+        ExpiryStatus.warning,
+        counts[ExpiryStatus.warning]!,
+        ExpiryStatus.warning.colorFor(context),
+      ),
+      (
+        'Valid',
+        ExpiryStatus.ok,
+        counts[ExpiryStatus.ok]!,
+        ExpiryStatus.ok.colorFor(context),
+      ),
     ];
-    return SizedBox(
-      height: 32 + MediaQuery.textScalerOf(context).scale(20),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
         children: [
           for (final option in options)
             Padding(
-              padding: const EdgeInsets.only(right: 8),
-               child: Semantics(
-                 label: option.$2?.label ?? 'All documents',
-                 child: FilterChip(
-                   label: Text(option.$3 == 0
-                       ? option.$1
-                       : '${option.$1} (${option.$3})'),
-                   selected: selectedStatus == option.$2,
-                   showCheckmark: false,
-                   selectedColor: option.$4.withValues(alpha: 0.14),
-                   labelStyle: TextStyle(
-                     color: selectedStatus == option.$2
-                         ? option.$4
-                         : Theme.of(context).colorScheme.onSurface,
-                   ),
-                   onSelected: (_) => ref
-                       .read(statusFilterProvider.notifier)
-                       .select(option.$2),
-                 ),
-               ),
+              padding: const EdgeInsets.only(right: AppSpacing.sm),
+              child: _FilterPill(
+                label: option.$1,
+                count: option.$3,
+                color: option.$4,
+                selected: selectedStatus == option.$2,
+                onTap: () =>
+                    ref.read(statusFilterProvider.notifier).select(option.$2),
+              ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _FilterPill extends StatelessWidget {
+  const _FilterPill({
+    required this.label,
+    required this.count,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int count;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final foreground = selected ? color : scheme.onSurfaceVariant;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label, $count',
+      child: Material(
+        color: selected ? color.withValues(alpha: 0.10) : Colors.transparent,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: selected
+                ? color.withValues(alpha: 0.38)
+                : scheme.outlineVariant,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: selected ? color : color.withValues(alpha: 0.55),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: foreground,
+                    fontSize: 12.5,
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  '$count',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: foreground.withValues(alpha: 0.62),
+                    fontSize: 12.5,
+                    fontFeatures: _tabular,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -712,6 +697,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final isEmpty = allDocuments.isEmpty;
     final profileEmpty = selectedProfile != null &&
         !allDocuments.any((document) => document.profileId == selectedProfile);
@@ -720,15 +706,16 @@ class _EmptyState extends StatelessWidget {
         : hasSearch
             ? 'No matching documents'
             : profileEmpty
-                ? 'No documents for this profile'
+                ? 'No documents for this person'
                 : 'No ${selectedStatus?.label.toLowerCase() ?? 'matching'} documents';
     final message = isEmpty
-        ? 'Add your first document to keep everything organized.'
+        ? 'Add your first ID, licence or permit and this vault starts '
+            'keeping time for you.'
         : hasSearch
-            ? 'Try another keyword or adjust your filters.'
+            ? 'Try another keyword, or clear the search.'
             : profileEmpty
-                ? 'Add a document for this person to keep their important dates organized.'
-                : 'Try changing the selected profile or status filter.';
+                ? 'Add a document for this person to track their renewal dates.'
+                : 'Try a different status or scope.';
     final action = isEmpty
         ? FilledButton.icon(
             onPressed: () => Navigator.of(context).push(
@@ -736,7 +723,7 @@ class _EmptyState extends StatelessWidget {
                 builder: (_) => const AddEditDocumentScreen(),
               ),
             ),
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, size: 18),
             label: const Text('Add your first document'),
           )
         : OutlinedButton.icon(
@@ -745,57 +732,57 @@ class _EmptyState extends StatelessWidget {
                 : profileEmpty
                     ? onClearProfile
                     : onClearStatus,
-            icon: const Icon(Icons.filter_alt_off_outlined),
+            icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
             label: Text(hasSearch
                 ? 'Clear search'
                 : selectedProfile != null
                     ? 'Show everyone'
                     : 'Show all statuses'),
           );
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.gutter,
+        AppSpacing.lg,
+        AppSpacing.gutter,
+        AppSpacing.xl,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
               isEmpty
-                  ? Icons.folder_open
+                  ? Icons.folder_outlined
                   : profileEmpty && !hasSearch
                       ? Icons.person_outline
                       : Icons.search_off,
-              size: 64,
-              color: theme.colorScheme.outline,
+              size: 24,
+              color: scheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 16),
-            Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Text(
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 6),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 300),
+            child: Text(
               message,
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 16),
-            action,
-          ],
-        ),
+          ),
+          const SizedBox(height: AppSpacing.md + 4),
+          action,
+        ],
       ),
     );
   }
-}
-
-class _AllCaughtUpCard extends StatelessWidget {
-  const _AllCaughtUpCard({super.key});
-
-  @override
-  Widget build(BuildContext context) => Card(
-        child: ListTile(
-          leading: Icon(Icons.check_circle_outline,
-              color: ExpiryStatus.ok.colorFor(context)),
-          title: const Text('All caught up!'),
-          subtitle: const Text('No documents need your attention right now.'),
-        ),
-      );
 }

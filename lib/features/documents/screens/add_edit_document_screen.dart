@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/constants/categories.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/section_label.dart';
 import '../../../data/local/secure_image_store.dart';
 import '../../profiles/models/profile.dart';
 import '../../profiles/providers/profile_providers.dart';
@@ -295,14 +297,20 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.gutter,
+            AppSpacing.xs,
+            AppSpacing.gutter,
+            AppSpacing.lg,
+          ),
           children: [
             _SectionHeading(
-              icon: Icons.document_scanner_outlined,
               title: _isEditing ? 'Document details' : 'Add to your vault',
-              description: 'Photos stay encrypted on this device. Only title and expiry date are required.',
+              description:
+                  'Only the title and expiry date are required. Photos stay '
+                  'encrypted on this device.',
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md + 4),
             _PhotosSection(
               imagePaths: _imagePaths,
               maxPhotos: _maxPhotos,
@@ -324,9 +332,9 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
                 );
               },
             ),
-            const SizedBox(height: 24),
-            const _SectionLabel('Document'),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.lg),
+            const SectionLabel('Document'),
+            const SizedBox(height: AppSpacing.sm + 2),
             TextFormField(
               controller: _titleController,
               textCapitalization: TextCapitalization.words,
@@ -361,9 +369,9 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
                 if (value != null) setState(() => _categoryKey = value);
               },
             ),
-            const SizedBox(height: 24),
-            const _SectionLabel('Important dates'),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.lg),
+            const SectionLabel('Important dates'),
+            const SizedBox(height: AppSpacing.sm + 2),
             _DateTile(
               label: 'Expiry date *',
               value: _expiryDate == null ? null : dateFormat.format(_expiryDate!),
@@ -407,9 +415,9 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
                   ? null
                   : () => setState(() => _issueDate = null),
             ),
-            const SizedBox(height: 24),
-            const _SectionLabel('Owner and private details'),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.lg),
+            const SectionLabel('Owner and private details'),
+            const SizedBox(height: AppSpacing.sm + 2),
             DropdownButtonFormField<String>(
               initialValue: profiles.any((p) => p.id == _profileId)
                   ? _profileId
@@ -440,9 +448,9 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
               maxLines: 3,
               decoration: const InputDecoration(labelText: 'Notes (optional)'),
             ),
-            const SizedBox(height: 24),
-            const _SectionLabel('Reminders'),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpacing.lg),
+            const SectionLabel('Reminders'),
+            const SizedBox(height: AppSpacing.xs),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Remind me before it expires'),
@@ -491,69 +499,28 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
 }
 
 class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
+  const _SectionHeading({required this.title, required this.description});
 
-  final IconData icon;
   final String title;
   final String description;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: theme.colorScheme.onPrimaryContainer),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ],
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: theme.textTheme.headlineSmall),
+        const SizedBox(height: AppSpacing.xs + 2),
+        Text(
+          description,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Text(
-        label,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-      );
 }
 
 class _PhotosSection extends StatelessWidget {
@@ -584,19 +551,35 @@ class _PhotosSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        SectionLabel(
+          'Photos',
+          trailing: Text(
+            '${imagePaths.length}/$maxPhotos',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
         Row(
           children: [
-            Icon(Icons.lock_outline, size: 16, color: scheme.primary),
-            const SizedBox(width: 6),
+            Icon(
+              Icons.lock_outline,
+              size: 13,
+              color: scheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 5),
             Expanded(
               child: Text(
-                'Photos (${imagePaths.length}/$maxPhotos) · AES-256 encrypted on device',
-                style: theme.textTheme.labelLarge,
+                'AES-256 encrypted on this device',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: AppSpacing.sm + 2),
         if (imagePaths.isEmpty)
           InkWell(
             onTap: isBusy ? null : onAddPhoto,

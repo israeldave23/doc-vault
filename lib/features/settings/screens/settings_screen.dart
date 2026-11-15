@@ -4,6 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/section_label.dart';
 import '../../documents/providers/document_providers.dart';
 import '../../lock/providers/auth_providers.dart';
 import '../../profiles/providers/profile_providers.dart';
@@ -23,7 +25,12 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.gutter,
+          AppSpacing.xs,
+          AppSpacing.gutter,
+          AppSpacing.xl + AppSpacing.md,
+        ),
         children: [
           const _SectionHeader('Appearance'),
           for (final option in const [
@@ -561,14 +568,11 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 24, 0, 4),
-      child: Text(
-        title.toUpperCase(),
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              letterSpacing: 1.1,
-            ),
+      padding: const EdgeInsets.only(
+        top: AppSpacing.lg,
+        bottom: AppSpacing.xs + 2,
       ),
+      child: SectionLabel(title),
     );
   }
 }

@@ -1,11 +1,17 @@
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/categories.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/expiry_status.dart';
 import '../models/document.dart';
 import 'status_chip.dart';
 
+/// One row in the vault.
+///
+/// Status is carried by a single 3px rail and one capsule; the category glyph
+/// stays neutral so colour only ever means "how urgent is this".
 class DocumentCard extends StatelessWidget {
   const DocumentCard({super.key, required this.document, this.onTap});
 
@@ -20,25 +26,28 @@ class DocumentCard extends StatelessWidget {
     final status = document.status;
     final statusColor = status.colorFor(context);
     final dateText = DateFormat.yMMMd().format(document.expiryDate);
-    final remainingText = daysRemainingLabel(document.daysRemaining);
+    final remainingText = _countdown(document.daysRemaining);
     final semanticLabel = '${document.title}, ${category.label}, '
         '${status.label}, $remainingText, expires $dateText';
 
     return Card(
-      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
         child: Semantics(
           button: onTap != null,
           label: semanticLabel,
           excludeSemantics: true,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border(
+                left: BorderSide(color: statusColor, width: 3),
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _CategoryIcon(icon: category.icon, color: statusColor),
+                _CategoryGlyph(icon: category.icon),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -48,16 +57,13 @@ class DocumentCard extends StatelessWidget {
                       Text(
                         document.title,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
                           color: scheme.onSurface,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
@@ -66,31 +72,24 @@ class DocumentCard extends StatelessWidget {
                               color: scheme.onSurfaceVariant,
                             ),
                           ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.event_outlined,
-                                size: 14,
-                                color: scheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  'Expires $dateText',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Text(
+                            ' · ',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                          Text(
+                            'Expires $dateText',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 9),
                       Wrap(
                         spacing: 8,
-                        runSpacing: 4,
+                        runSpacing: 6,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           StatusChip(status: status, compact: true),
@@ -99,6 +98,9 @@ class DocumentCard extends StatelessWidget {
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: statusColor,
                               fontWeight: FontWeight.w600,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
                           ),
                         ],
@@ -106,8 +108,6 @@ class DocumentCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right, color: scheme.outline, size: 20),
               ],
             ),
           ),
@@ -117,20 +117,32 @@ class DocumentCard extends StatelessWidget {
   }
 }
 
-class _CategoryIcon extends StatelessWidget {
-  const _CategoryIcon({required this.icon, required this.color});
+/// Omits the repeated status word so an expired row reads "Expired · 41 days
+/// ago" rather than "Expired · Expired 41 days ago".
+String _countdown(int daysRemaining) {
+  if (daysRemaining < 0) {
+    final past = -daysRemaining;
+    return past == 1 ? '1 day ago' : '$past days ago';
+  }
+  return daysRemainingLabel(daysRemaining);
+}
+
+class _CategoryGlyph extends StatelessWidget {
+  const _CategoryGlyph({required this.icon});
 
   final IconData icon;
-  final Color color;
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, color: color, size: 22),
-      );
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadii.control),
+      ),
+      child: Icon(icon, color: scheme.onSurfaceVariant, size: 18),
+    );
+  }
 }

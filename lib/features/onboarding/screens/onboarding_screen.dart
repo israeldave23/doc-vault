@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../settings/screens/settings_screen.dart';
 
@@ -89,24 +90,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ExcludeSemantics(
-                            child: Icon(
-                              icon,
-                              size: 96,
-                              color: theme.colorScheme.primary,
+                            child: Container(
+                              width: 76,
+                              height: 76,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                icon,
+                                size: 32,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: AppSpacing.lg),
                           Text(
                             title,
                             textAlign: TextAlign.center,
-                            style: theme.textTheme.headlineSmall,
+                            style: theme.textTheme.headlineMedium,
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            body,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
+                          const SizedBox(height: AppSpacing.sm + 2),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 320),
+                            child: Text(
+                              body,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                height: 1.5,
+                              ),
                             ),
                           ),
                         ],
@@ -124,10 +137,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   children: [
                     for (var i = 0; i < _slides.length; i++)
                       AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: _page == i ? 24 : 8,
-                        height: 8,
+                        duration: AppMotion.fast,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: _page == i ? 20 : 6,
+                        height: 6,
                         decoration: BoxDecoration(
                           color: _page == i
                               ? theme.colorScheme.primary
