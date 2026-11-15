@@ -1,6 +1,6 @@
 import 'package:doc_vault/features/documents/models/document.dart';
 import 'package:doc_vault/features/documents/widgets/document_card.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

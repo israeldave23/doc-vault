@@ -4,7 +4,7 @@ import 'package:doc_vault/features/lock/widgets/lock_gate.dart';
 import 'package:doc_vault/features/settings/models/app_settings.dart';
 import 'package:doc_vault/features/settings/providers/settings_provider.dart';
 import 'package:doc_vault/features/settings/services/auth_service.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

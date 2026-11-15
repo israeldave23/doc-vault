@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Preset categories. The [key] is what gets stored in the database so labels
 /// can be renamed or localized later without migrating data.

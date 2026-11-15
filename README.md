@@ -21,7 +21,9 @@ Built with Flutter by DGA Studios. Full product spec: [docs/SPEC.md](docs/SPEC.m
 
 ## Getting started
 
-Requires Flutter 3.35 or newer (stable channel).
+Requires Flutter 3.47 or newer (stable channel). Material widgets come from
+the official `material_ui` package (`package:material_ui/material_ui.dart`),
+because Flutter deprecated `package:flutter/material.dart` after 3.47.
 
 ```bash
 git clone https://github.com/israeldave23/doc-vault.git
