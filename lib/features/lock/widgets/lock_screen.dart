@@ -92,24 +92,30 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
               child: Column(
                 children: [
-                  ExcludeSemantics(
-                    child: Icon(
-                      Icons.lock_outline,
-                      size: 56,
-                      color: theme.colorScheme.primary,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock_outline,
+                          size: 22, color: theme.colorScheme.primary),
+                      const SizedBox(width: 10),
+                      Text('DOCUMENT VAULT', style: theme.textTheme.labelSmall),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Your archive.\nFor your eyes only.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    'Document Vault is locked',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleLarge,
-                  ),
+                  Text('Enter your PIN to open the vault.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 24),
                   _PinDots(filled: _entered.length),
                   SizedBox(

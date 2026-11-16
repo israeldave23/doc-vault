@@ -7,6 +7,7 @@ import '../../profiles/providers/profile_providers.dart';
 import 'dashboard_screen.dart';
 import '../widgets/document_card.dart';
 import 'document_detail_screen.dart';
+import 'add_edit_document_screen.dart';
 
 /// Complete document collection and alert view used by app-level navigation.
 class DocumentCollectionScreen extends ConsumerStatefulWidget {
@@ -45,27 +46,40 @@ class _DocumentCollectionScreenState
     });
     final visible = ref.watch(visibleDocumentsProvider);
     final documents = widget.alertsOnly
-        ? visible.where((document) =>
-            document.status == ExpiryStatus.expired ||
-            document.status == ExpiryStatus.critical).toList(growable: false)
+        ? visible
+            .where((document) =>
+                document.status == ExpiryStatus.expired ||
+                document.status == ExpiryStatus.critical)
+            .toList(growable: false)
         : visible;
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.alertsOnly ? 'Alerts' : 'All Documents'),
+        title: Text(widget.alertsOnly ? 'Renewal desk' : 'The archive'),
       ),
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+              child: Text(
+                widget.alertsOnly
+                    ? 'A little attention today. Peace of mind tomorrow.'
+                    : 'Your important papers, all in their place.',
+                style: theme.textTheme.bodyLarge
+                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
+          ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             sliver: SliverToBoxAdapter(
               child: TextField(
                 controller: _searchController,
-                onChanged: (value) => ref
-                    .read(searchQueryProvider.notifier)
-                    .update(value),
+                onChanged: (value) =>
+                    ref.read(searchQueryProvider.notifier).update(value),
                 decoration: InputDecoration(
                   hintText: widget.alertsOnly
                       ? 'Search alerts...'
@@ -137,6 +151,19 @@ class _DocumentCollectionScreenState
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
+                      const SizedBox(height: 20),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          _searchController.clear();
+                          ref.read(searchQueryProvider.notifier).update('');
+                          ref
+                              .read(selectedProfileIdProvider.notifier)
+                              .select(null);
+                          ref.read(statusFilterProvider.notifier).select(null);
+                        },
+                        icon: const Icon(Icons.filter_alt_off_outlined),
+                        label: const Text('Reset filters'),
+                      ),
                     ],
                   ),
                 ),
@@ -163,9 +190,19 @@ class _DocumentCollectionScreenState
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
+      floatingActionButton: widget.alertsOnly
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () =>
+                  Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => const AddEditDocumentScreen(),
+              )),
+              icon: const Icon(Icons.add),
+              label: const Text('Add document'),
+            ),
     );
   }
 }

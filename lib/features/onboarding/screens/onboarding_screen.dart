@@ -86,25 +86,56 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         minHeight: MediaQuery.sizeOf(context).height * .55,
                       ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          Text('DOCUMENT VAULT / 0${index + 1}',
+                              style: theme.textTheme.labelSmall),
+                          const SizedBox(height: 24),
                           ExcludeSemantics(
-                            child: Icon(
-                              icon,
-                              size: 96,
-                              color: theme.colorScheme.primary,
+                            child: Container(
+                              width: double.infinity,
+                              height: 180,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                    color: theme.colorScheme.outlineVariant),
+                              ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Transform.rotate(
+                                    angle: -0.12,
+                                    child: Container(
+                                      width: 110,
+                                      height: 128,
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.surface,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color: theme
+                                                .colorScheme.outlineVariant),
+                                      ),
+                                    ),
+                                  ),
+                                  Icon(icon,
+                                      size: 56,
+                                      color: theme.colorScheme.primary),
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 32),
                           Text(
                             title,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.headlineSmall,
+                            textAlign: TextAlign.start,
+                            style: theme.textTheme.headlineLarge,
                           ),
                           const SizedBox(height: 16),
                           Text(
                             body,
-                            textAlign: TextAlign.center,
+                            textAlign: TextAlign.start,
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),

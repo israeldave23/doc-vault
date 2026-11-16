@@ -34,7 +34,7 @@ class DocumentDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(document.title),
+        title: const Text('Document record'),
         actions: [
           IconButton(
             tooltip: 'Edit',
@@ -53,19 +53,26 @@ class DocumentDetailScreen extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
         children: [
+          Text(category.label.toUpperCase(),
+              style: theme.textTheme.labelSmall
+                  ?.copyWith(color: theme.colorScheme.primary)),
+          const SizedBox(height: 10),
+          Text(document.title, style: theme.textTheme.headlineLarge),
+          const SizedBox(height: 24),
           if (document.imagePaths.isEmpty)
             Container(
               height: 180,
               decoration: BoxDecoration(
-                color: status.color.withValues(alpha: 0.10),
+                color: status.colorFor(context).withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(category.icon, size: 64, color: status.color),
+                  Icon(category.icon,
+                      size: 64, color: status.colorFor(context)),
                   const SizedBox(height: 8),
                   Text(
                     'No photo attached · tap Edit to scan',
@@ -90,7 +97,7 @@ class DocumentDetailScreen extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: status.color.withValues(alpha: 0.10),
+                  color: status.colorFor(context).withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Wrap(
@@ -102,7 +109,7 @@ class DocumentDetailScreen extends ConsumerWidget {
                     Text(
                       daysRemainingLabel(document.daysRemaining),
                       style: theme.textTheme.titleMedium?.copyWith(
-                        color: status.color,
+                        color: status.colorFor(context),
                         fontWeight: FontWeight.w700,
                       ),
                     ),

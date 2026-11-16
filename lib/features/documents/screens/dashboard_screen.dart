@@ -16,7 +16,9 @@ import 'add_edit_document_screen.dart';
 import 'document_detail_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({super.key, this.onBrowseAll});
+
+  final VoidCallback? onBrowseAll;
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
@@ -49,6 +51,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _clearSearch();
     ref.read(selectedProfileIdProvider.notifier).select(null);
     ref.read(statusFilterProvider.notifier).select(null);
+    widget.onBrowseAll?.call();
   }
 
   String get _greeting {
@@ -92,29 +95,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-           SliverAppBar(
-             backgroundColor: Colors.transparent,
-             elevation: 0,
-             scrolledUnderElevation: 0,
-             pinned: false,
-             titleSpacing: 0,
-             title: Padding(
-               padding: const EdgeInsets.only(left: AppSpacing.md),
-               child: Row(
-                 children: [
-                   Container(
-                     width: 44,
-                     height: 44,
-                     decoration: BoxDecoration(
-                       color: scheme.primary.withValues(alpha: 0.08),
-                       borderRadius: BorderRadius.circular(AppRadii.control),
-                     ),
-                     child: Icon(
-                       Icons.shield_outlined,
-                       color: scheme.primary,
-                       size: 22,
-                     ),
-                   ),
+          SliverAppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            pinned: false,
+            titleSpacing: 0,
+            title: Padding(
+              padding: const EdgeInsets.only(left: AppSpacing.md),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(AppRadii.control),
+                    ),
+                    child: Icon(
+                      Icons.shield_outlined,
+                      color: scheme.primary,
+                      size: 22,
+                    ),
+                  ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
@@ -138,15 +141,35 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ],
                     ),
                   ),
-                   IconButton(
-                     tooltip: 'Settings',
-                     icon: const Icon(Icons.tune_outlined),
-                     onPressed: () => Navigator.of(context).push(
-                       MaterialPageRoute<void>(
-                         builder: (_) => const SettingsScreen(),
-                       ),
-                     ),
-                   ),
+                  IconButton(
+                    tooltip: 'Settings',
+                    icon: const Icon(Icons.tune_outlined),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SettingsScreen(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('YOUR PRIVATE ARCHIVE',
+                      style: theme.textTheme.labelSmall
+                          ?.copyWith(color: scheme.primary)),
+                  const SizedBox(height: 12),
+                  Text('Life, filed safely.',
+                      style: theme.textTheme.displaySmall),
+                  const SizedBox(height: 10),
+                  Text('Important papers. No last-minute surprises.',
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: scheme.onSurfaceVariant)),
                 ],
               ),
             ),
@@ -168,7 +191,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   setState(() {});
                 },
                 decoration: InputDecoration(
-                  hintText: 'Search your documents...',
+                  hintText: 'Find a document or note',
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchController.text.isEmpty
                       ? null
@@ -194,16 +217,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               sliver: SliverToBoxAdapter(
-               child: _AnimatedHealthOverview(
-                   total: profileDocuments.length,
-                   valid: validCount,
-                   expired: expiredCount,
-                   expiring: expiringCount,
-                   onTap: (status) {
-                     _clearSearch();
-                     ref.read(statusFilterProvider.notifier).select(status);
-                   },
-                 ),
+                child: _ArchiveOverview(
+                  total: profileDocuments.length,
+                  valid: validCount,
+                  expired: expiredCount,
+                  expiring: expiringCount,
+                  onTap: (status) {
+                    _clearSearch();
+                    ref.read(statusFilterProvider.notifier).select(status);
+                  },
+                ),
               ),
             ),
             SliverPadding(
@@ -238,30 +261,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           if (allDocuments.isNotEmpty)
             SliverToBoxAdapter(
               child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
-              child: Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                   OutlinedButton.icon(
-                     onPressed: _viewAll,
-                     icon: const Icon(Icons.grid_3x3_outlined),
-                     label: const Text('Browse all'),
-                   ),
-                   OutlinedButton.icon(
-                     onPressed: () => Navigator.of(context).push(
-                       MaterialPageRoute<void>(
-                         builder: (_) => const ProfilesScreen(),
-                       ),
-                     ),
-                     icon: const Icon(Icons.people_outline),
-                     label: const Text('Manage profiles'),
-                   ),
-                ],
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+                child: Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _viewAll,
+                      icon: const Icon(Icons.grid_3x3_outlined),
+                      label: const Text('Browse all'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const ProfilesScreen(),
+                        ),
+                      ),
+                      icon: const Icon(Icons.people_outline),
+                      label: const Text('Manage profiles'),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.sm)),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(
@@ -298,12 +321,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 selectedStatus: selectedStatus,
                 hasSearch: _searchController.text.trim().isNotEmpty,
                 onClearSearch: _clearSearch,
-                onClearProfile: () => ref
-                    .read(selectedProfileIdProvider.notifier)
-                    .select(null),
-                onClearStatus: () => ref
-                    .read(statusFilterProvider.notifier)
-                    .select(null),
+                onClearProfile: () =>
+                    ref.read(selectedProfileIdProvider.notifier).select(null),
+                onClearStatus: () =>
+                    ref.read(statusFilterProvider.notifier).select(null),
               ),
             )
           else
@@ -332,7 +353,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const AddEditDocumentScreen()),
+          MaterialPageRoute<void>(
+              builder: (_) => const AddEditDocumentScreen()),
         ),
         tooltip: 'Add document',
         icon: const Icon(Icons.add),
@@ -363,9 +385,8 @@ class VaultProfileSelector extends ConsumerWidget {
           _ProfileChip(
             label: 'Everyone',
             selected: selectedProfile == null,
-            onTap: () => ref
-                .read(selectedProfileIdProvider.notifier)
-                .select(null),
+            onTap: () =>
+                ref.read(selectedProfileIdProvider.notifier).select(null),
           ),
           for (final profile in profiles)
             _ProfileChip(
@@ -424,8 +445,8 @@ class _ProfileChip extends StatelessWidget {
   }
 }
 
-class _AnimatedHealthOverview extends StatefulWidget {
-  const _AnimatedHealthOverview({
+class _ArchiveOverview extends StatelessWidget {
+  const _ArchiveOverview({
     required this.total,
     required this.valid,
     required this.expired,
@@ -440,101 +461,71 @@ class _AnimatedHealthOverview extends StatefulWidget {
   final void Function(ExpiryStatus?) onTap;
 
   @override
-  State<_AnimatedHealthOverview> createState() => _AnimatedHealthOverviewState();
-}
-
-class _AnimatedHealthOverviewState extends State<_AnimatedHealthOverview>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    )..forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final tiles = <(String, int, Color, ExpiryStatus?)>[
-      ('Total', widget.total, scheme.primary, null),
-      ('Valid', widget.valid, ExpiryStatus.ok.colorFor(context), ExpiryStatus.ok),
-      ('Expiring', widget.expiring,
-          ExpiryStatus.critical.colorFor(context), ExpiryStatus.critical),
-      ('Expired', widget.expired,
-          ExpiryStatus.expired.colorFor(context), ExpiryStatus.expired),
-    ];
-    return Card(
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Material(
+      color: scheme.primaryContainer,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        side: BorderSide(color: scheme.primary.withValues(alpha: 0.18)),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (var i = 0; i < tiles.length; i++)
+            Row(children: [
+              Icon(Icons.inventory_2_outlined,
+                  size: 18, color: scheme.onPrimaryContainer),
+              const SizedBox(width: 8),
               Expanded(
-                child: _AnimatedHealthTile(
-                  label: tiles[i].$1,
-                  count: tiles[i].$2,
-                  color: tiles[i].$3,
-                  onTap: tiles[i].$4 == null ? null : () => widget.onTap(tiles[i].$4),
-                  animation: Tween<double>(begin: 0, end: 1).animate(
-                    CurvedAnimation(
-                      parent: _controller,
-                      curve: Interval(i * 0.1, 0.4 + i * 0.1, curve: Curves.easeOut),
-                    ),
+                  child: Text('ARCHIVE AT A GLANCE',
+                      style: theme.textTheme.labelSmall
+                          ?.copyWith(color: scheme.onPrimaryContainer))),
+            ]),
+            const SizedBox(height: 16),
+            Text(
+                '$total ${total == 1 ? 'document' : 'documents'},\none less thing to remember.',
+                style: theme.textTheme.headlineMedium
+                    ?.copyWith(color: scheme.onPrimaryContainer)),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final item in <(String, int, IconData, ExpiryStatus)>[
+                  ('Valid', valid, Icons.check_circle_outline, ExpiryStatus.ok),
+                  (
+                    'Expiring',
+                    expiring,
+                    Icons.schedule_outlined,
+                    ExpiryStatus.critical
                   ),
-                ),
-              ),
+                  (
+                    'Expired',
+                    expired,
+                    Icons.error_outline,
+                    ExpiryStatus.expired
+                  ),
+                ])
+                  OutlinedButton.icon(
+                    onPressed: () => onTap(item.$4),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: scheme.onPrimaryContainer,
+                      side: BorderSide(
+                          color: scheme.onPrimaryContainer
+                              .withValues(alpha: 0.25)),
+                    ),
+                    icon: Icon(item.$3, size: 18),
+                    label: Text('${item.$2} ${item.$1.toLowerCase()}'),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
     );
-  }
-}
-
-class _AnimatedHealthTile extends AnimatedWidget {
-  const _AnimatedHealthTile({
-    required this.label,
-    required this.count,
-    required this.color,
-    required this.onTap,
-    required Animation<double> animation,
-  }) : super(listenable: animation);
-
-  final String label;
-  final int count;
-  final Color color;
-  final VoidCallback? onTap;
-
-  Animation<double> get animation => listenable as Animation<double>;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final opacity = animation.value;
-    final scale = 0.8 + (animation.value * 0.2);
-    final child = Transform.scale(
-      scale: scale,
-      alignment: Alignment.center,
-      child: Opacity(
-        opacity: opacity,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text('$count', style: theme.textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w800)),
-          const SizedBox(height: AppSpacing.xs),
-          Text(label, textAlign: TextAlign.center, style: theme.textTheme.labelMedium),
-        ]),
-      ),
-    );
-    if (onTap == null) return child;
-    return Semantics(button: true, onTap: onTap, label: '$count $label', child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(AppRadii.control), child: child));
   }
 }
 
@@ -563,7 +554,8 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _PriorityAlerts extends StatelessWidget {
-  const _PriorityAlerts({super.key, required this.documents, required this.onDocumentTap});
+  const _PriorityAlerts(
+      {super.key, required this.documents, required this.onDocumentTap});
   final List<Document> documents;
   final ValueChanged<String> onDocumentTap;
 
@@ -576,11 +568,20 @@ class _PriorityAlerts extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer), const SizedBox(width: AppSpacing.sm), Text('Needs your attention', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: scheme.onErrorContainer))]),
+          Row(children: [
+            Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer),
+            const SizedBox(width: AppSpacing.sm),
+            Text('Needs your attention',
+                style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onErrorContainer))
+          ]),
           const SizedBox(height: AppSpacing.sm),
           for (var i = 0; i < documents.length; i++) ...[
             if (i > 0) const Divider(height: AppSpacing.md),
-            _PriorityRow(document: documents[i], onTap: () => onDocumentTap(documents[i].id)),
+            _PriorityRow(
+                document: documents[i],
+                onTap: () => onDocumentTap(documents[i].id)),
           ],
         ]),
       ),
@@ -600,7 +601,8 @@ class _PriorityRow extends StatelessWidget {
     return Semantics(
       button: true,
       onTap: onTap,
-      label: '${document.title}, ${document.status.label}, ${daysRemainingLabel(document.daysRemaining)}',
+      label:
+          '${document.title}, ${document.status.label}, ${daysRemainingLabel(document.daysRemaining)}',
       child: ExcludeSemantics(
         child: InkWell(
           onTap: onTap,
@@ -608,13 +610,28 @@ class _PriorityRow extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             child: Row(children: [
-              Icon(document.status == ExpiryStatus.expired ? Icons.error_outline : Icons.schedule, color: color, size: 20),
+              Icon(
+                  document.status == ExpiryStatus.expired
+                      ? Icons.error_outline
+                      : Icons.schedule,
+                  color: color,
+                  size: 20),
               const SizedBox(width: AppSpacing.sm),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(document.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                Text(daysRemainingLabel(document.daysRemaining), style: theme.textTheme.labelMedium?.copyWith(color: color, fontWeight: FontWeight.w600)),
-              ])),
-              Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.outline),
+              Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Text(document.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(daysRemainingLabel(document.daysRemaining),
+                        style: theme.textTheme.labelMedium?.copyWith(
+                            color: color, fontWeight: FontWeight.w600)),
+                  ])),
+              Icon(Icons.chevron_right,
+                  size: 18, color: theme.colorScheme.outline),
             ]),
           ),
         ),
@@ -647,14 +664,30 @@ class VaultStatusFilters extends ConsumerWidget {
     };
     final options = <(String, ExpiryStatus?, int, Color)>[
       ('All', null, filtered.length, Theme.of(context).colorScheme.primary),
-      ('Expired', ExpiryStatus.expired, counts[ExpiryStatus.expired]!,
-          ExpiryStatus.expired.colorFor(context)),
-      ('Expiring soon', ExpiryStatus.critical, counts[ExpiryStatus.critical]!,
-          ExpiryStatus.critical.colorFor(context)),
-      ('Renew soon', ExpiryStatus.warning, counts[ExpiryStatus.warning]!,
-          ExpiryStatus.warning.colorFor(context)),
-      ('Valid', ExpiryStatus.ok, counts[ExpiryStatus.ok]!,
-          ExpiryStatus.ok.colorFor(context)),
+      (
+        'Expired',
+        ExpiryStatus.expired,
+        counts[ExpiryStatus.expired]!,
+        ExpiryStatus.expired.colorFor(context)
+      ),
+      (
+        'Expiring soon',
+        ExpiryStatus.critical,
+        counts[ExpiryStatus.critical]!,
+        ExpiryStatus.critical.colorFor(context)
+      ),
+      (
+        'Renew soon',
+        ExpiryStatus.warning,
+        counts[ExpiryStatus.warning]!,
+        ExpiryStatus.warning.colorFor(context)
+      ),
+      (
+        'Valid',
+        ExpiryStatus.ok,
+        counts[ExpiryStatus.ok]!,
+        ExpiryStatus.ok.colorFor(context)
+      ),
     ];
     return SizedBox(
       height: 32 + MediaQuery.textScalerOf(context).scale(20),
@@ -664,25 +697,24 @@ class VaultStatusFilters extends ConsumerWidget {
           for (final option in options)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-               child: Semantics(
-                 label: option.$2?.label ?? 'All documents',
-                 child: FilterChip(
-                   label: Text(option.$3 == 0
-                       ? option.$1
-                       : '${option.$1} (${option.$3})'),
-                   selected: selectedStatus == option.$2,
-                   showCheckmark: false,
-                   selectedColor: option.$4.withValues(alpha: 0.14),
-                   labelStyle: TextStyle(
-                     color: selectedStatus == option.$2
-                         ? option.$4
-                         : Theme.of(context).colorScheme.onSurface,
-                   ),
-                   onSelected: (_) => ref
-                       .read(statusFilterProvider.notifier)
-                       .select(option.$2),
-                 ),
-               ),
+              child: Semantics(
+                label: option.$2?.label ?? 'All documents',
+                child: FilterChip(
+                  label: Text(option.$3 == 0
+                      ? option.$1
+                      : '${option.$1} (${option.$3})'),
+                  selected: selectedStatus == option.$2,
+                  showCheckmark: false,
+                  selectedColor: option.$4.withValues(alpha: 0.14),
+                  labelStyle: TextStyle(
+                    color: selectedStatus == option.$2
+                        ? option.$4
+                        : Theme.of(context).colorScheme.onSurface,
+                  ),
+                  onSelected: (_) =>
+                      ref.read(statusFilterProvider.notifier).select(option.$2),
+                ),
+              ),
             ),
         ],
       ),
@@ -768,7 +800,8 @@ class _EmptyState extends StatelessWidget {
               color: theme.colorScheme.outline,
             ),
             const SizedBox(height: 16),
-            Text(title, textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
+            Text(title,
+                textAlign: TextAlign.center, style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
               message,

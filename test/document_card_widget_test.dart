@@ -1,10 +1,12 @@
+import 'package:doc_vault/core/theme/app_theme.dart';
 import 'package:doc_vault/features/documents/models/document.dart';
 import 'package:doc_vault/features/documents/widgets/document_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('document card exposes one useful accessible action', (tester) async {
+  testWidgets('document card exposes one useful accessible action',
+      (tester) async {
     final expiry = DateTime.now().add(const Duration(days: 45));
     final document = Document(
       id: 'passport',
@@ -104,7 +106,8 @@ void main() {
     expect(find.text('Valid'), findsOneWidget);
   });
 
-  testWidgets('document card renders in both light and dark themes', (tester) async {
+  testWidgets('document card renders in both light and dark themes',
+      (tester) async {
     final document = Document(
       id: 'expired',
       title: 'Expired Passport',
@@ -116,8 +119,8 @@ void main() {
     for (final mode in [ThemeMode.light, ThemeMode.dark]) {
       await tester.pumpWidget(
         MaterialApp(
-          theme: ThemeData(brightness: Brightness.light),
-          darkTheme: ThemeData(brightness: Brightness.dark),
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
           themeMode: mode,
           home: Scaffold(body: DocumentCard(document: document)),
         ),

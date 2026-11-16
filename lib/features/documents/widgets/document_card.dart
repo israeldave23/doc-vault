@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/categories.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/expiry_status.dart';
 import '../models/document.dart';
 import 'status_chip.dart';
@@ -18,96 +19,77 @@ class DocumentCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final category = DocumentCategory.byKey(document.category);
     final status = document.status;
-    final statusColor = status.colorFor(context);
     final dateText = DateFormat.yMMMd().format(document.expiryDate);
     final remainingText = daysRemainingLabel(document.daysRemaining);
-    final semanticLabel = '${document.title}, ${category.label}, '
-        '${status.label}, $remainingText, expires $dateText';
 
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
         child: Semantics(
           button: onTap != null,
-          label: semanticLabel,
+          label: '${document.title}, ${category.label}, '
+              '${status.label}, $remainingText, expires $dateText',
           excludeSemantics: true,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border(
+                  left: BorderSide(color: status.colorFor(context), width: 4)),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _CategoryIcon(icon: category.icon, color: statusColor),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        document.title,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onSurface,
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: scheme.secondaryContainer,
+                              borderRadius:
+                                  BorderRadius.circular(AppRadii.control),
+                            ),
+                            child: Icon(category.icon,
+                                size: 20, color: scheme.onSecondaryContainer),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                              child: Text(category.label,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                      color: scheme.onSurfaceVariant))),
+                          Icon(Icons.north_east_rounded,
+                              size: 18, color: scheme.onSurfaceVariant),
+                        ]),
+                        const SizedBox(height: 14),
+                        Text(document.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleLarge),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            StatusChip(status: status, compact: true),
+                            Text(remainingText,
+                                style: theme.textTheme.bodySmall),
+                          ],
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            category.label,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.event_outlined,
-                                size: 14,
-                                color: scheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  'Expires $dateText',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          StatusChip(status: status, compact: true),
-                          Text(
-                            remainingText,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: statusColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                        const SizedBox(height: 14),
+                        Divider(color: scheme.outlineVariant),
+                        const SizedBox(height: 12),
+                        Text('Expires $dateText',
+                            style: theme.textTheme.bodySmall),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(width: 4),
-                Icon(Icons.chevron_right, color: scheme.outline, size: 20),
               ],
             ),
           ),
@@ -115,22 +97,4 @@ class DocumentCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CategoryIcon extends StatelessWidget {
-  const _CategoryIcon({required this.icon, required this.color});
-
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, color: color, size: 22),
-      );
 }
