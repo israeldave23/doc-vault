@@ -153,10 +153,7 @@ class PremiumSearchBar extends StatelessWidget {
         textInputAction: TextInputAction.search,
         hintText: 'Search your documents...',
         features: [
-          const InputLeadingFeature(
-            Semantics(
-                label: 'Search documents', child: Icon(LucideIcons.search)),
-          ),
+          const InputLeadingFeature(Icon(LucideIcons.search)),
           controller.text.isEmpty
               ? InputTrailingFeature(
                   Semantics(

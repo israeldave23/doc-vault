@@ -199,32 +199,32 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     final now = DateTime.now();
     final initial = (isExpiry ? _expiryDate : _issueDate) ?? now;
     final picked = await const DialogConfiguration()
-        .show<DateTime>(
+        .show<CalendarValue>(
           context,
-          (ctx) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DatePicker(
-                value: initial,
-                stateBuilder: (date) => date
-                        .isBefore(DateTime(now.year - 30, now.month, now.day))
+          (ctx) => DatePickerDialog(
+            initialViewType: CalendarViewType.date,
+            selectionMode: CalendarSelectionMode.single,
+            initialValue: CalendarValue.single(initial),
+            stateBuilder: (date) => date
+                    .isBefore(DateTime(now.year - 30, now.month, now.day))
+                ? DateState.disabled
+                : date.isAfter(DateTime(now.year + 30, now.month, now.day))
                     ? DateState.disabled
-                    : date.isAfter(DateTime(now.year + 30, now.month, now.day))
-                        ? DateState.disabled
-                        : DateState.enabled,
-                onChanged: (date) => Navigator.of(ctx).pop(date),
-              ),
-              const SizedBox(height: 8),
-            ],
+                    : DateState.enabled,
+            onChanged: (value) {
+              if (value is SingleCalendarValue) {
+                Navigator.of(ctx).pop(value);
+              }
+            },
           ),
         )
         .future;
-    if (picked == null) return;
+    if (picked is! SingleCalendarValue) return;
     setState(() {
       if (isExpiry) {
-        _expiryDate = picked;
+        _expiryDate = picked.date;
       } else {
-        _issueDate = picked;
+        _issueDate = picked.date;
       }
     });
   }
