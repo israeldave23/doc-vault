@@ -88,13 +88,21 @@ class PremiumHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                  IconButton.ghost(
-                    icon: const Icon(LucideIcons.bell),
-                    onPressed: onNotificationTap,
+                  Semantics(
+                    label: 'Open notifications',
+                    button: true,
+                    child: IconButton.ghost(
+                      icon: const Icon(LucideIcons.bell),
+                      onPressed: onNotificationTap,
+                    ),
                   ),
-                  IconButton.ghost(
-                    icon: const Icon(LucideIcons.slidersHorizontal),
-                    onPressed: onSettingsTap,
+                  Semantics(
+                    label: 'Open settings',
+                    button: true,
+                    child: IconButton.ghost(
+                      icon: const Icon(LucideIcons.slidersHorizontal),
+                      onPressed: onSettingsTap,
+                    ),
                   ),
                 ],
               ),
@@ -145,18 +153,29 @@ class PremiumSearchBar extends StatelessWidget {
         textInputAction: TextInputAction.search,
         hintText: 'Search your documents...',
         features: [
-          const InputLeadingFeature(Icon(LucideIcons.search)),
+          const InputLeadingFeature(
+            Semantics(
+                label: 'Search documents', child: Icon(LucideIcons.search)),
+          ),
           controller.text.isEmpty
               ? InputTrailingFeature(
-                  IconButton.ghost(
-                    icon: const Icon(LucideIcons.slidersHorizontal),
-                    onPressed: onFilterTap,
+                  Semantics(
+                    label: 'Open filters',
+                    button: true,
+                    child: IconButton.ghost(
+                      icon: const Icon(LucideIcons.slidersHorizontal),
+                      onPressed: onFilterTap,
+                    ),
                   ),
                 )
               : InputTrailingFeature(
-                  IconButton.ghost(
-                    icon: const Icon(LucideIcons.x),
-                    onPressed: onClear,
+                  Semantics(
+                    label: 'Clear search',
+                    button: true,
+                    child: IconButton.ghost(
+                      icon: const Icon(LucideIcons.x),
+                      onPressed: onClear,
+                    ),
                   ),
                 ),
         ],

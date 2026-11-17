@@ -135,9 +135,13 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                             ? _verify
                             : null,
                     trailing: _biometricAvailable
-                        ? IconButton.ghost(
-                            icon: const Icon(LucideIcons.fingerprint),
-                            onPressed: _biometricUnlock,
+                        ? Semantics(
+                            label: 'Unlock with biometrics',
+                            button: true,
+                            child: IconButton.ghost(
+                              icon: const Icon(LucideIcons.fingerprint),
+                              onPressed: _biometricUnlock,
+                            ),
                           )
                         : const SizedBox(width: 48, height: 48),
                   ),
@@ -237,9 +241,13 @@ class _Keypad extends StatelessWidget {
             SizedBox(
               width: 72,
               height: 64,
-              child: IconButton.ghost(
-                onPressed: onBackspace,
-                icon: const Icon(LucideIcons.delete),
+              child: Semantics(
+                label: 'Delete last PIN digit',
+                button: true,
+                child: IconButton.ghost(
+                  onPressed: onBackspace,
+                  icon: const Icon(LucideIcons.delete),
+                ),
               ),
             ),
           ],

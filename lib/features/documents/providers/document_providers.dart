@@ -41,19 +41,11 @@ class DocumentsNotifier extends Notifier<List<Document>> {
   List<Document> build() =>
       _sorted(ref.watch(documentRepositoryProvider).getAll());
 
+  /// Persists the document. The editor handles photo cleanup and reminder sync
+  /// after this succeeds, so notification failures cannot look like save failures.
   Future<void> upsert(Document document) async {
-    final existing = ref.read(documentRepositoryProvider).getById(document.id);
-    if (existing != null) {
-      final removedImages = existing.imagePaths
-          .where((p) => !document.imagePaths.contains(p))
-          .toList();
-      if (removedImages.isNotEmpty) {
-        await ref.read(secureImageStoreProvider).deleteAll(removedImages);
-      }
-    }
     await ref.read(documentRepositoryProvider).upsert(document);
     _reload();
-    await _resyncReminders();
   }
 
   /// Moves every document tagged [fromProfileId] to [toProfileId], used when a

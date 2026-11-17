@@ -1,6 +1,7 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/theme/app_back_button.dart';
 import '../providers/document_providers.dart';
 
 /// Decrypts and renders a single vault image in memory.
@@ -126,6 +127,7 @@ class _EncryptedPhotoViewerScreenState
     return Scaffold(
       headers: [
         AppBar(
+          leading: const [AppBackButton()],
           title: Text(_pageLabel(_index, total)),
         ),
       ],

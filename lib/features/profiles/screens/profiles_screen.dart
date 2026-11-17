@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
+import '../../../core/theme/app_back_button.dart';
 import '../../documents/providers/document_providers.dart';
 import '../../pro/models/free_tier.dart';
 import '../../pro/widgets/free_tier_gate.dart';
@@ -19,6 +20,7 @@ class ProfilesScreen extends ConsumerWidget {
     return Scaffold(
       headers: [
         AppBar(
+          leading: const [AppBackButton()],
           title: const Text('People'),
           trailing: [
             Button.primary(

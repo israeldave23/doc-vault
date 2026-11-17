@@ -51,7 +51,10 @@ void main() {
     final iv = Uint8List.fromList(List<int>.generate(16, (i) => i + 10));
     final legacy = enc.Encrypter(enc.AES(enc.Key(key), mode: enc.AESMode.cbc));
     final encrypted = legacy.encryptBytes(plain, iv: enc.IV(iv));
-    expect(await store.decryptBytes(Uint8List.fromList([...iv, ...encrypted.bytes])), plain);
+    expect(
+        await store
+            .decryptBytes(Uint8List.fromList([...iv, ...encrypted.bytes])),
+        plain);
   });
 
   test('save and load only use encrypted basename', () async {
@@ -62,17 +65,68 @@ void main() {
     expect(name.endsWith('.enc'), isTrue);
     expect(await store.load(name), plain);
     await expectLater(store.load('../outside.enc'), throwsArgumentError);
-    await expectLater(store.readEncrypted('..\\outside.enc'), throwsArgumentError);
-    await expectLater(store.readEncrypted(p.join(tempDir.path, 'outside.enc')), throwsArgumentError);
+    await expectLater(
+        store.readEncrypted('..\\outside.enc'), throwsArgumentError);
+    await expectLater(store.readEncrypted(p.join(tempDir.path, 'outside.enc')),
+        throwsArgumentError);
   });
 
   test('writeEncrypted rejects traversal and non-enc basename', () async {
-    await expectLater(store.writeEncrypted('../outside.enc', Uint8List(0)), throwsArgumentError);
-    await expectLater(store.writeEncrypted('photo.jpg', Uint8List(0)), throwsArgumentError);
-    await expectLater(store.writeEncrypted('sub\\photo.enc', Uint8List(0)), throwsArgumentError);
+    await expectLater(store.writeEncrypted('../outside.enc', Uint8List(0)),
+        throwsArgumentError);
+    await expectLater(
+        store.writeEncrypted('photo.jpg', Uint8List(0)), throwsArgumentError);
+    await expectLater(store.writeEncrypted('sub\\photo.enc', Uint8List(0)),
+        throwsArgumentError);
+  });
+
+  test('replacement rejects unsafe and colliding names before modifying vault',
+      () async {
+    final old = await store.encryptBytes(Uint8List.fromList([1, 2, 3]));
+    await store.writeEncrypted('existing.enc', old);
+    for (final name in [
+      'photo.jpg',
+      '../outside.enc',
+      'sub\\photo.enc',
+      '.hidden.enc',
+      'C:photo.enc',
+      'photo\u0000.enc',
+    ]) {
+      await expectLater(
+        store.replaceAllEncrypted([MapEntry(name, old)],
+            commitMetadata: () async => fail('must not commit')),
+        throwsArgumentError,
+      );
+    }
+    await expectLater(
+      store.replaceAllEncrypted([
+        MapEntry('photo.enc', old),
+        MapEntry('PHOTO.enc', old),
+      ], commitMetadata: () async => fail('must not commit')),
+      throwsArgumentError,
+    );
+    expect(await store.readEncrypted('existing.enc'), old);
+    expect(await store.listStored(), ['existing.enc']);
+  });
+
+  test('empty replacement removes photos only after successful commit',
+      () async {
+    final old = await store.encryptBytes(Uint8List.fromList([1, 2, 3]));
+    await store.writeEncrypted('existing.enc', old);
+    await expectLater(
+      store.replaceAllEncrypted([], commitMetadata: () async {
+        expect(await store.listStored(), isEmpty);
+        throw StateError('commit failed');
+      }),
+      throwsStateError,
+    );
+    expect(await store.readEncrypted('existing.enc'), old);
+    await store.replaceAllEncrypted([], commitMetadata: () async {});
+    expect(await store.listStored(), isEmpty);
   });
 
   test('truncated payload fails', () async {
-    await expectLater(store.decryptBytes(Uint8List.fromList([1, 2, 3])), throwsFormatException);
+    await expectLater(store.decryptBytes(Uint8List.fromList([1, 2, 3])),
+        throwsFormatException);
   });
 }

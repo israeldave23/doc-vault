@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/categories.dart';
+import '../../../core/theme/app_back_button.dart';
 import '../../../core/utils/expiry_status.dart';
 import '../../profiles/providers/profile_providers.dart';
 import '../providers/document_providers.dart';
@@ -20,7 +21,12 @@ class DocumentDetailScreen extends ConsumerWidget {
     final document = ref.watch(documentByIdProvider(documentId));
     if (document == null) {
       // Deleted while open; go back gracefully.
-      return const Scaffold(child: SizedBox.shrink());
+      return const Scaffold(
+        headers: [
+          AppBar(leading: [AppBackButton()])
+        ],
+        child: SizedBox.shrink(),
+      );
     }
 
     final theme = Theme.of(context);
@@ -35,19 +41,28 @@ class DocumentDetailScreen extends ConsumerWidget {
     return Scaffold(
       headers: [
         AppBar(
+          leading: const [AppBackButton()],
           title: Text(document.title),
           trailing: [
-            IconButton.ghost(
-              icon: const Icon(LucideIcons.pencil),
-              onPressed: () => Navigator.of(context).push(
-                ShadcnPageRoute<void>(
-                  builder: (_) => AddEditDocumentScreen(existing: document),
+            Semantics(
+              label: 'Edit document',
+              button: true,
+              child: IconButton.ghost(
+                icon: const Icon(LucideIcons.pencil),
+                onPressed: () => Navigator.of(context).push(
+                  ShadcnPageRoute<void>(
+                    builder: (_) => AddEditDocumentScreen(existing: document),
+                  ),
                 ),
               ),
             ),
-            IconButton.ghost(
-              icon: const Icon(LucideIcons.trash2),
-              onPressed: () => _confirmDelete(context, ref),
+            Semantics(
+              label: 'Delete document',
+              button: true,
+              child: IconButton.ghost(
+                icon: const Icon(LucideIcons.trash2),
+                onPressed: () => _confirmDelete(context, ref),
+              ),
             ),
           ],
         ),
@@ -180,25 +195,27 @@ class DocumentDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await const DialogConfiguration().show<bool>(
-      context,
-      (ctx) => AlertDialog(
-        title: const Text('Delete document?'),
-        content: const Text(
-          'This removes the document and its encrypted photos from this device.',
-        ),
-        actions: [
-          Button.ghost(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+    final confirmed = await const DialogConfiguration()
+        .show<bool>(
+          context,
+          (ctx) => AlertDialog(
+            title: const Text('Delete document?'),
+            content: const Text(
+              'This removes the document and its encrypted photos from this device.',
+            ),
+            actions: [
+              Button.ghost(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              Button.destructive(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          Button.destructive(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    ).future;
+        )
+        .future;
     if (confirmed != true || !context.mounted) return;
     Navigator.of(context).pop();
     await ref.read(documentsProvider.notifier).remove(documentId);
@@ -273,11 +290,11 @@ class _DocumentPhotosCarouselState extends State<_DocumentPhotosCarousel> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                 const Icon(
-                                   LucideIcons.lock,
-                                   size: 13,
-                                   color: Colors.white,
-                                 ),
+                                const Icon(
+                                  LucideIcons.lock,
+                                  size: 13,
+                                  color: Colors.white,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   paths.length > 1

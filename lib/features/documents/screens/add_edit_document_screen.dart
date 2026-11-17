@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/constants/categories.dart';
+import '../../../core/theme/app_back_button.dart';
 import '../../../data/local/secure_image_store.dart';
 import '../../profiles/models/profile.dart';
 import '../../profiles/providers/profile_providers.dart';
@@ -72,8 +73,7 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     _expiryDate = doc?.expiryDate;
     _remindersEnabled = doc?.remindersEnabled ?? true;
     _reminderDays = List<int>.of(
-      doc?.reminderDaysBefore ??
-          ref.read(settingsProvider).defaultReminderDays,
+      doc?.reminderDaysBefore ?? ref.read(settingsProvider).defaultReminderDays,
     );
     _imagePaths = List<String>.of(doc?.imagePaths ?? const <String>[]);
     _originalImagePaths.addAll(_imagePaths);
@@ -117,29 +117,31 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   Future<void> _showPhotoSourceSheet() async {
     if (_imagePaths.length >= _maxPhotos || _isCapturingPhoto) return;
 
-    final source = await const DialogConfiguration().show<ImageSource>(
-      context,
-      (ctx) => AlertDialog(
-        title: const Text('Add photo'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Button.ghost(
-              alignment: Alignment.centerLeft,
-              leading: const Icon(LucideIcons.camera),
-              onPressed: () => Navigator.of(ctx).pop(ImageSource.camera),
-              child: const Text('Take photo'),
+    final source = await const DialogConfiguration()
+        .show<ImageSource>(
+          context,
+          (ctx) => AlertDialog(
+            title: const Text('Add photo'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Button.ghost(
+                  alignment: Alignment.centerLeft,
+                  leading: const Icon(LucideIcons.camera),
+                  onPressed: () => Navigator.of(ctx).pop(ImageSource.camera),
+                  child: const Text('Take photo'),
+                ),
+                Button.ghost(
+                  alignment: Alignment.centerLeft,
+                  leading: const Icon(LucideIcons.images),
+                  onPressed: () => Navigator.of(ctx).pop(ImageSource.gallery),
+                  child: const Text('Choose from gallery'),
+                ),
+              ],
             ),
-            Button.ghost(
-              alignment: Alignment.centerLeft,
-              leading: const Icon(LucideIcons.images),
-              onPressed: () => Navigator.of(ctx).pop(ImageSource.gallery),
-              child: const Text('Choose from gallery'),
-            ),
-          ],
-        ),
-      ),
-    ).future;
+          ),
+        )
+        .future;
 
     if (source == null || !mounted) return;
     await _captureFromSource(source);
@@ -148,12 +150,11 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   Future<void> _captureFromSource(ImageSource source) async {
     setState(() => _isCapturingPhoto = true);
     try {
-      final result = await ref
-          .read(photoCaptureServiceProvider)
-          .pickCropAndSave(
-            source: source,
-            toolbarColor: Theme.of(context).colorScheme.primary,
-          );
+      final result =
+          await ref.read(photoCaptureServiceProvider).pickCropAndSave(
+                source: source,
+                toolbarColor: Theme.of(context).colorScheme.primary,
+              );
       if (result == null) return;
       if (!mounted) {
         await _imageStore.delete(result.storedPath);
@@ -197,25 +198,27 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
   Future<void> _pickDate({required bool isExpiry}) async {
     final now = DateTime.now();
     final initial = (isExpiry ? _expiryDate : _issueDate) ?? now;
-    final picked = await const DialogConfiguration().show<DateTime>(
-      context,
-      (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DatePicker(
-            value: initial,
-            stateBuilder: (date) => date.isBefore(
-                DateTime(now.year - 30, now.month, now.day))
-                ? DateState.disabled
-                : date.isAfter(DateTime(now.year + 30, now.month, now.day))
+    final picked = await const DialogConfiguration()
+        .show<DateTime>(
+          context,
+          (ctx) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DatePicker(
+                value: initial,
+                stateBuilder: (date) => date
+                        .isBefore(DateTime(now.year - 30, now.month, now.day))
                     ? DateState.disabled
-                    : DateState.enabled,
-            onChanged: (date) => Navigator.of(ctx).pop(date),
+                    : date.isAfter(DateTime(now.year + 30, now.month, now.day))
+                        ? DateState.disabled
+                        : DateState.enabled,
+                onChanged: (date) => Navigator.of(ctx).pop(date),
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    ).future;
+        )
+        .future;
     if (picked == null) return;
     setState(() {
       if (isExpiry) {
@@ -284,12 +287,14 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
             title: _titleController.text.trim(),
             category: _categoryKey,
             idNumber: idNumber.isEmpty ? null : idNumber,
+            clearIdNumber: idNumber.isEmpty,
             issueDate: _issueDate,
             clearIssueDate: _issueDate == null,
             expiryDate: _expiryDate,
             profileId: _profileId,
             imagePaths: List<String>.unmodifiable(_imagePaths),
             notes: notes.isEmpty ? null : notes,
+            clearNotes: notes.isEmpty,
             reminderDaysBefore: _sortedReminderDays(),
             remindersEnabled: _remindersEnabled,
           )
@@ -324,6 +329,11 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     }
     if (!mounted) return;
 
+    await ref
+        .read(reminderServiceProvider)
+        .syncAll(ref.read(documentsProvider));
+    if (!mounted) return;
+
     if (_remindersEnabled) {
       // Explain and request notification permission only now that the user
       // actually saved something with reminders on.
@@ -354,6 +364,7 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
     return Scaffold(
       headers: [
         AppBar(
+          leading: const [AppBackButton()],
           title: Text(_isEditing ? 'Edit document' : 'Add document'),
         ),
       ],
@@ -403,7 +414,8 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
             onChanged: (value) {
               if (value != null) setState(() => _categoryKey = value);
             },
-            itemBuilder: (context, value) => Text(DocumentCategory.byKey(value).label),
+            itemBuilder: (context, value) =>
+                Text(DocumentCategory.byKey(value).label),
             popup: (context) => SelectPopup(
               items: SelectItemList(
                 children: [
@@ -467,8 +479,7 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
           const SizedBox(height: 12),
           _DateTile(
             label: 'Issue date (optional)',
-            value:
-                _issueDate == null ? null : dateFormat.format(_issueDate!),
+            value: _issueDate == null ? null : dateFormat.format(_issueDate!),
             onTap: () => _pickDate(isExpiry: false),
             onClear: _issueDate == null
                 ? null
@@ -486,8 +497,7 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
               if (value != null) setState(() => _profileId = value);
             },
             itemBuilder: (context, value) {
-              final profile =
-                  profiles.where((p) => p.id == value).firstOrNull;
+              final profile = profiles.where((p) => p.id == value).firstOrNull;
               return Text('${profile?.avatarEmoji ?? ''} ${profile?.name ?? ''}'
                   .trim());
             },
@@ -528,7 +538,8 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
                     Text(
                       _reminderSummary(),
                       style: Theme.of(context).typography.small.copyWith(
-                            color: Theme.of(context).colorScheme.mutedForeground,
+                            color:
+                                Theme.of(context).colorScheme.mutedForeground,
                           ),
                     ),
                   ],
@@ -536,8 +547,7 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
               ),
               Switch(
                 value: _remindersEnabled,
-                onChanged: (value) =>
-                    setState(() => _remindersEnabled = value),
+                onChanged: (value) => setState(() => _remindersEnabled = value),
               ),
             ],
           ),
@@ -549,8 +559,12 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
               children: [
                 for (final days in _reminderOptions)
                   GestureDetector(
-                    onTap: () =>
-                        _toggleReminderDay(days, !_reminderDays.contains(days)),
+                    onTap: () => setState(() {
+                      _toggleReminderDay(
+                        days,
+                        !_reminderDays.contains(days),
+                      );
+                    }),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
@@ -572,7 +586,9 @@ class _AddEditDocumentScreenState extends ConsumerState<AddEditDocumentScreen> {
                         days == 1 ? '1 day' : '$days days',
                         style: Theme.of(context).typography.small.copyWith(
                               color: _reminderDays.contains(days)
-                                  ? Theme.of(context).colorScheme.foreground
+                                  ? Theme.of(context)
+                                      .colorScheme
+                                      .primaryForeground
                                   : Theme.of(context).colorScheme.foreground,
                               fontWeight: FontWeight.w600,
                             ),
@@ -759,8 +775,9 @@ class _PhotosSection extends StatelessWidget {
                     padding: const EdgeInsets.only(right: 12),
                     child: _PhotoThumbnailTile(
                       storedPath: imagePaths[i],
-                      label:
-                          i < slotLabels.length ? slotLabels[i] : 'Page ${i + 1}',
+                      label: i < slotLabels.length
+                          ? slotLabels[i]
+                          : 'Page ${i + 1}',
                       onTap: () => onPreviewPhoto(i),
                       onRemove: () => onRemovePhoto(i),
                     ),
@@ -871,7 +888,8 @@ class _PhotoThumbnailTile extends StatelessWidget {
               label: 'Remove photo',
               button: true,
               child: Tooltip(
-                tooltip: (_) => const TooltipContainer(child: Text('Remove photo')),
+                tooltip: (_) =>
+                    const TooltipContainer(child: Text('Remove photo')),
                 child: IconButton.destructive(
                   icon: const Icon(LucideIcons.x, size: 20),
                   onPressed: onRemove,

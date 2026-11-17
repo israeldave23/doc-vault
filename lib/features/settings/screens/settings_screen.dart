@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
+import '../../../core/theme/app_back_button.dart';
 import '../../documents/providers/document_providers.dart';
 import '../../lock/providers/auth_providers.dart';
 import '../../profiles/providers/profile_providers.dart';
@@ -21,7 +22,12 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
 
     return Scaffold(
-      headers: const [AppBar(title: Text('Settings'))],
+      headers: [
+        AppBar(
+          leading: [if (Navigator.canPop(context)) const AppBackButton()],
+          title: const Text('Settings'),
+        ),
+      ],
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
         children: [

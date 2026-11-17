@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
+import '../../../core/theme/app_back_button.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/free_tier.dart';
 import '../services/pro_service.dart';
@@ -39,7 +40,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      headers: const [AppBar(title: Text('Document Vault Pro'))],
+      headers: const [
+        AppBar(
+          leading: [AppBackButton()],
+          title: Text('Document Vault Pro'),
+        ),
+      ],
       child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
         children: [

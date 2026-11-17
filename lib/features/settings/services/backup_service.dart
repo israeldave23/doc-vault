@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:encrypt/encrypt.dart' as enc;
@@ -51,9 +52,9 @@ class BackupSummary {
 ///
 /// Layout: `magic(8) | salt(16) | iv(16) | length(4) | AES-256-CBC payload`.
 /// The passphrase is stretched with PBKDF2 to form the key. The payload holds
-/// a JSON snapshot followed by the still-encrypted image files, so a stolen
-/// backup is useless without the passphrase and photos are never decrypted on
-/// the way in or out.
+/// a JSON snapshot followed by photo plaintext, all encrypted by the backup
+/// passphrase. Photos are decrypted only in memory and re-encrypted with the
+/// destination device's key on restore.
 class BackupService {
   BackupService({
     required this.documentsBox,
@@ -67,11 +68,12 @@ class BackupService {
   final Box<AppSettings> settingsBox;
   final SecureImageStore images;
 
-  static const _magic = 'DVBACK1\n';
+  static const _magic = 'DVBACK2\n';
+  static const _legacyMagic = 'DVBACK1\n';
   static const _saltLength = 16;
   static const _ivLength = 16;
   static const _headerLength = 8 + 16 + 16 + 4;
-  static const _version = 1;
+  static const _version = 2;
 
   /// Builds the encrypted archive, ready to be written to a file.
   Future<Uint8List> exportArchive({required String passphrase}) async {
@@ -142,10 +144,10 @@ class BackupService {
           'Invalid document or profile relationships in backup.');
     }
     final imageNames = <String>{};
+    final foldedNames = <String>{};
     for (final entry in decoded.images) {
-      if (entry.key.isEmpty ||
-          entry.key.length > 255 ||
-          !_isSafeImageName(entry.key) ||
+      if (!SecureImageStore.isValidImageName(entry.key) ||
+          !foldedNames.add(entry.key.toLowerCase()) ||
           !imageNames.add(entry.key)) {
         throw BackupException('Invalid image filename in backup.');
       }
@@ -155,25 +157,60 @@ class BackupService {
       throw BackupException('Document references missing image in backup.');
     }
 
-    await images.clearAll();
+    final encryptedImages = <MapEntry<String, Uint8List>>[];
     for (final entry in decoded.images) {
-      await images.writeEncrypted(entry.key, entry.value);
-    }
-
-    await documentsBox.clear();
-    await documentsBox.putAll({for (final d in docs) d.id: d});
-
-    await profilesBox.clear();
-    await profilesBox.putAll({for (final p in profiles) p.id: p});
-    if (!profilesBox.containsKey(Profile.selfId)) {
-      await profilesBox.put(
-        Profile.selfId,
-        const Profile(id: Profile.selfId, name: 'Me', avatarEmoji: '🙂'),
+      var plainBytes = entry.value;
+      if (decoded.json['version'] == 1) {
+        // Legacy backups contain ciphertext tied to the original device key.
+        try {
+          plainBytes = await images.decryptBytes(entry.value);
+        } on FormatException {
+          throw BackupException(
+            'Legacy backup photos require the original device key. '
+            'Export a new backup from the original device.',
+          );
+        }
+      }
+      encryptedImages.add(
+        MapEntry(entry.key, await images.encryptBytes(plainBytes)),
       );
     }
 
-    await settingsBox.clear();
-    await settingsBox.put(AppSettings.storageKey, settings);
+    final oldDocs = documentsBox.toMap();
+    final oldProfiles = profilesBox.toMap();
+    final oldSettings = settingsBox.toMap();
+    try {
+      await images.replaceAllEncrypted(encryptedImages,
+          commitMetadata: () async {
+        try {
+          await documentsBox.clear();
+          await documentsBox.putAll({for (final d in docs) d.id: d});
+          await profilesBox.clear();
+          await profilesBox.putAll({for (final p in profiles) p.id: p});
+          if (!profilesBox.containsKey(Profile.selfId)) {
+            await profilesBox.put(
+              Profile.selfId,
+              const Profile(id: Profile.selfId, name: 'Me', avatarEmoji: '🙂'),
+            );
+          }
+          await settingsBox.clear();
+          await settingsBox.put(AppSettings.storageKey, settings);
+        } catch (_) {
+          await documentsBox.clear();
+          await documentsBox.putAll(oldDocs);
+          await profilesBox.clear();
+          await profilesBox.putAll(oldProfiles);
+          await settingsBox.clear();
+          await settingsBox.putAll(oldSettings);
+          rethrow;
+        }
+      });
+    } on FileSystemException {
+      throw BackupException(
+        'Restore could not complete. Check free space and storage access, '
+        'then try again.',
+      );
+    }
 
     return BackupSummary(
       documents: docs.length,
@@ -190,8 +227,11 @@ class BackupService {
   }
 
   _DecodedArchive _decodeAll(Uint8List bytes, String passphrase) {
-    if (bytes.length < _headerLength ||
-        utf8.decode(bytes.sublist(0, 8), allowMalformed: true) != _magic) {
+    if (bytes.length < _headerLength) {
+      throw BackupException('This file is not a Document Vault backup.');
+    }
+    final magic = utf8.decode(bytes.sublist(0, 8), allowMalformed: true);
+    if (magic != _magic && magic != _legacyMagic) {
       throw BackupException('This file is not a Document Vault backup.');
     }
 
@@ -235,6 +275,11 @@ class BackupService {
       json = decoded;
     } catch (_) {
       throw BackupException('The backup file is damaged.');
+    }
+
+    final expectedVersion = magic == _legacyMagic ? 1 : _version;
+    if (json['version'] != expectedVersion) {
+      throw BackupException('Unsupported backup version.');
     }
 
     var cursor = 4 + jsonLength;
@@ -289,16 +334,9 @@ class BackupService {
     _writeInt(builder, names.length);
     for (final name in names) {
       _writeChunk(builder, utf8.encode(name));
-      _writeChunk(builder, await images.readEncrypted(name));
+      _writeChunk(builder, await images.load(name));
     }
     return builder.toBytes();
-  }
-
-  static bool _isSafeImageName(String name) {
-    return !name.contains('/') &&
-        !name.contains('\\') &&
-        !name.contains('..') &&
-        !name.startsWith('.');
   }
 
   static void _writeChunk(BytesBuilder builder, List<int> bytes) {

@@ -45,15 +45,23 @@ class _PremiumBottomNavigationState extends State<PremiumBottomNavigation> {
         top: false,
         child: Row(
           children: [
-            for (var index = 0; index < _tabs.length; index++)
-              Expanded(
-                child: NavigationItem(
-                  selected: widget.selectedIndex == index,
-                  onChanged: (_) => widget.onDestinationSelected(index),
-                  label: Text(_tabs[index].label),
-                  child: Icon(_tabs[index].icon),
-                ),
+            Expanded(
+              child: NavigationBar(
+                labelType: NavigationLabelType.all,
+                direction: Axis.horizontal,
+                alignment: NavigationBarAlignment.spaceEvenly,
+                padding: EdgeInsets.zero,
+                children: [
+                  for (var index = 0; index < _tabs.length; index++)
+                    NavigationItem(
+                      selected: widget.selectedIndex == index,
+                      onChanged: (_) => widget.onDestinationSelected(index),
+                      label: Text(_tabs[index].label),
+                      child: Icon(_tabs[index].icon),
+                    ),
+                ],
               ),
+            ),
             IconButton.primary(
               icon: const Icon(LucideIcons.plus),
               onPressed: widget.onAddDocument,
